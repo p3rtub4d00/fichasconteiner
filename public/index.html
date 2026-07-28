@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conteiner Beer - Sistema de Fichas</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- TELA DE LOGIN -->
+    <div id="login-view" class="view active">
+        <div class="login-box">
+            <h1>Conteiner Beer</h1>
+            <h2>Acesso ao Sistema</h2>
+            <input type="password" id="pin-input" placeholder="Digite a Senha (Admin ou Garçom)">
+            <button onclick="login()">Entrar</button>
+            <p class="hint">Dica para teste: admin123 ou garcom123</p>
+        </div>
+    </div>
+
+    <!-- TELA ADMIN -->
+    <div id="admin-view" class="view">
+        <header>
+            <h1>Painel Administrativo</h1>
+            <button onclick="logout()" class="btn-danger">Sair</button>
+        </header>
+        <main>
+            <section class="card">
+                <h3>Faturamento de Hoje</h3>
+                <h2 id="total-revenue">R$ 0,00</h2>
+                <button onclick="clearRevenue()" class="btn-warning">Limpar Faturamento</button>
+            </section>
+            
+            <section class="card">
+                <h3>Gerenciar Produtos</h3>
+                <div class="form-group">
+                    <input type="text" id="prod-name" placeholder="Nome do Produto (ex: Cerveja 600ml)">
+                    <input type="number" id="prod-price" placeholder="Preço (ex: 15.00)" step="0.01">
+                    <button onclick="addProduct()">Adicionar</button>
+                </div>
+                <ul id="admin-product-list" class="list"></ul>
+            </section>
+        </main>
+    </div>
+
+    <!-- TELA GARÇOM -->
+    <div id="waiter-view" class="view">
+        <header>
+            <h1>Emissão de Fichas</h1>
+            <button onclick="logout()" class="btn-danger">Sair</button>
+        </header>
+        <main>
+            <div id="waiter-product-grid" class="grid"></div>
+        </main>
+    </div>
+
+    <!-- ÁREA DE IMPRESSÃO (Oculta na tela, visível na impressora) -->
+    <div id="print-area">
+        <h3 style="text-align:center;">Conteiner Beer</h3>
+        <p>-------------------------</p>
+        <h2 id="print-prod-name" style="text-align:center;">PRODUTO</h2>
+        <h1 id="print-prod-price" style="text-align:center;">R$ 0,00</h1>
+        <p>-------------------------</p>
+        <p id="print-date"></p>
+        <p>Validade: Apenas hoje</p>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
