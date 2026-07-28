@@ -48,7 +48,7 @@ header { display: flex; justify-content: space-between; align-items: center; pad
 .list li button { padding: 5px 10px; font-size: 12px; width: auto; margin: 0; }
 .mini-list { max-height: 150px; }
 
-/* Abas de Categoria (Garçom) */
+/* Abas de Categoria */
 .tabs-container { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; }
 .tab { width: auto; padding: 8px 16px; background: var(--bg-color); border: 1px solid var(--border); border-radius: 20px; color: var(--text-muted); }
 .tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
@@ -68,23 +68,58 @@ header { display: flex; justify-content: space-between; align-items: center; pad
 .modal-total strong { color: var(--success); font-size: 24px; display: block; margin-top: 5px; }
 .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
+/* Oculta área de impressão na tela normal */
 #print-area { display: none; }
 
-/* IMPRESSÃO TÉRMICA (Bobina) */
+/* ==================================================
+   IMPRESSÃO TÉRMICA (CORREÇÃO DE TELA BRANCA) 
+   ================================================== */
 @media print {
-    body * { visibility: hidden; }
-    #print-area, #print-area * { visibility: visible; font-family: monospace; font-weight: bold; color: black; }
-    #print-area { position: absolute; left: 0; top: 0; width: 58mm; margin: 0; background: white; }
+    /* 1. Remove margens do navegador (cabeçalhos e rodapés automáticos) */
+    @page { margin: 0; }
     
+    /* 2. Força ocultamento TOTAL da interface do sistema */
+    #login-view, #admin-view, #waiter-view, #qtd-modal { 
+        display: none !important; 
+    }
+    
+    body { background: white; margin: 0; padding: 0; }
+    
+    /* 3. Exibe APENAS a área de impressão */
+    #print-area { 
+        display: block !important; 
+        position: absolute; 
+        left: 0; 
+        top: 0; 
+        width: 58mm; 
+        margin: 0; 
+        background: white; 
+        color: black;
+        font-family: monospace; 
+        font-weight: bold;
+    }
+    
+    /* 4. Estilo da Ficha Individual */
     .ticket { 
-        padding: 10px 0; 
+        padding: 5px 0 15px 0; 
         text-align: center; 
-        border-bottom: 1px dashed #000;
-        page-break-after: always; /* MUITO IMPORTANTE: Faz a impressora cortar/separar as fichas */
-        margin-bottom: 10px;
+        border-bottom: 2px dashed #000;
+        page-break-after: always; /* Corta o papel aqui se forem várias fichas */
+        margin-bottom: 0;
     }
     .ticket h3 { font-size: 14px; margin-bottom: 5px; }
-    .ticket h2 { font-size: 20px; text-transform: uppercase; margin: 5px 0; }
-    .ticket h1 { font-size: 22px; margin: 5px 0; }
+    .ticket h2 { font-size: 18px; text-transform: uppercase; margin: 5px 0; }
+    .ticket h1 { font-size: 24px; margin: 5px 0; }
     .ticket p { font-size: 10px; margin-top: 5px; }
+    
+    /* Código de Segurança */
+    .ticket-id { 
+        display: inline-block;
+        font-size: 14px;
+        margin-top: 5px;
+        padding: 2px 5px;
+        border: 1px solid #000;
+        background-color: #f0f0f0;
+        letter-spacing: 2px;
+    }
 }

@@ -32,12 +32,10 @@ async function fetchCategories() {
     const res = await fetch(`${API_URL}/categories`);
     allCategories = await res.json();
     
-    // Atualiza lista Admin
     document.getElementById('admin-category-list').innerHTML = allCategories.map(c => `
         <li><span>${c.name}</span> <button class="btn-danger" onclick="deleteCategory('${c._id}')">X</button></li>
     `).join('');
 
-    // Atualiza Select do formulário de Produto
     document.getElementById('prod-category').innerHTML = `
         <option value="">Selecione a Categoria</option>
         ${allCategories.map(c => `<option value="${c.name}">${c.name}</option>`).join('')}
@@ -113,7 +111,6 @@ async function loadWaiterData() {
     const resCat = await fetch(`${API_URL}/categories`);
     allCategories = await resCat.json();
     
-    // Montar Abas
     document.getElementById('category-tabs').innerHTML = `
         <button class="tab active" onclick="filterProducts('Todas', this)">Todas</button>
         ${allCategories.map(c => `<button class="tab" onclick="filterProducts('${c.name}', this)">${c.name}</button>`).join('')}
@@ -149,7 +146,6 @@ function renderWaiterGrid(products) {
 }
 
 function filterProducts(category, btnElement) {
-    // Atualizar visual da aba ativa
     document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
     btnElement.classList.add('active');
 
@@ -194,6 +190,11 @@ function updateModalUI() {
     document.getElementById('modal-total-price').innerText = `R$ ${total.toFixed(2)}`;
 }
 
+// Gera um ID alfanumérico aleatório de 6 caracteres para segurança
+function generateUniqueId() {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
 async function confirmOrder() {
     const total = orderState.quantity * orderState.price;
 
@@ -210,17 +211,22 @@ async function confirmOrder() {
         })
     });
 
-    // 2. Gerar HTML de impressão (Múltiplas fichas baseadas na quantidade)
+    // 2. Gerar HTML de impressão
     let printHTML = '';
-    const dateStr = new Date().toLocaleString();
+    const dateStr = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
     
+    // O loop cria uma ficha separada para CADA unidade comprada
     for (let i = 0; i < orderState.quantity; i++) {
+        const securityCode = generateUniqueId(); // Gera um código novo para cada ficha
+        
         printHTML += `
             <div class="ticket">
                 <h3>Conteiner Beer</h3>
                 <p>--- FICHA INDIVIDUAL ---</p>
                 <h2>${orderState.name}</h2>
                 <h1>R$ ${orderState.price.toFixed(2)}</h1>
+                <p>CÓDIGO DE AUTENTICAÇÃO:</p>
+                <div class="ticket-id">${securityCode}</div>
                 <p>${dateStr}</p>
             </div>
         `;
@@ -228,11 +234,12 @@ async function confirmOrder() {
 
     document.getElementById('print-area').innerHTML = printHTML;
     
-    // 3. Imprimir e Fechar Modal
-    window.print();
-    closeModal();
-    
-    // Limpar busca (opcional, para agilizar próxima venda)
-    document.getElementById('search-input').value = '';
-    renderWaiterGrid(allProducts);
+    // 3. Aguardar renderização no DOM e chamar impressão
+    setTimeout(() => {
+        window.print();
+        closeModal();
+        
+        document.getElementById('search-input').value = '';
+        renderWaiterGrid(allProducts);
+    }, 100); // Um pequeno delay garante que o HTML foi inserido antes de abrir a janela de impressão
 }
