@@ -81,6 +81,23 @@
         </div>
     </div>
 
+    <!-- MODAL DE EDITAR PRODUTO -->
+    <div id="edit-prod-modal" class="modal">
+        <div class="modal-box">
+            <h2>Editar Produto</h2>
+            <input type="hidden" id="edit-prod-id">
+            <input type="text" id="edit-prod-name" placeholder="Nome do Produto">
+            <input type="number" id="edit-prod-price" placeholder="Preço R$" step="0.01">
+            <input type="number" id="edit-prod-stock" placeholder="Quantidade em Estoque" step="1">
+            <select id="edit-prod-category"></select>
+            
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button class="btn-danger" onclick="closeEditProdModal()">Cancelar</button>
+                <button class="btn-success" onclick="saveEditProduct()">Salvar Alterações</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL DO CARRINHO (CHECKOUT) -->
     <div id="cart-modal" class="modal">
         <div class="modal-box cart-modal-box">

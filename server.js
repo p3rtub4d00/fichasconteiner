@@ -32,9 +32,14 @@ app.get('/api/categories', async (req, res) => res.json(await Category.find()));
 app.post('/api/categories', async (req, res) => res.json(await new Category(req.body).save()));
 app.delete('/api/categories/:id', async (req, res) => { await Category.findByIdAndDelete(req.params.id); res.json({ msg: 'OK' }); });
 
-// --- Rotas de Produtos (Agora com Estoque) ---
+// --- Rotas de Produtos (Agora com Edição) ---
 app.get('/api/products', async (req, res) => res.json(await Product.find()));
 app.post('/api/products', async (req, res) => res.json(await new Product(req.body).save()));
+// NOVA ROTA: Editar Produto
+app.put('/api/products/:id', async (req, res) => {
+    await Product.findByIdAndUpdate(req.params.id, req.body);
+    res.json({ msg: 'Produto atualizado' });
+});
 app.delete('/api/products/:id', async (req, res) => { await Product.findByIdAndDelete(req.params.id); res.json({ msg: 'OK' }); });
 
 // --- Integração Mercado Pago (Gerar PIX e Checar Status) ---
@@ -45,7 +50,7 @@ app.post('/api/pix', async (req, res) => {
                 transaction_amount: req.body.total,
                 description: 'Venda Conteiner Beer',
                 payment_method_id: 'pix',
-                payer: { email: 'cliente@conteinerbeer.com' } // E-mail genérico obrigatório pro MP
+                payer: { email: 'cliente@conteinerbeer.com' }
             }
         });
         res.json({
@@ -59,23 +64,19 @@ app.post('/api/pix', async (req, res) => {
 app.get('/api/pix/:id', async (req, res) => {
     try {
         const payInfo = await payment.get({ id: req.params.id });
-        res.json({ status: payInfo.status }); // Retorna 'approved' quando pago
+        res.json({ status: payInfo.status });
     } catch (error) { res.status(500).json({ error: 'Erro ao checar status' }); }
 });
 
 // --- Rotas de Vendas e Baixa de Estoque ---
 app.post('/api/orders', async (req, res) => {
     const orderData = req.body;
-    
-    // 1. Salva o pedido
     const order = new Order(orderData);
     await order.save();
     
-    // 2. Abate o estoque de cada produto vendido
     for (let item of orderData.items) {
         await Product.findByIdAndUpdate(item.id, { $inc: { stock: -item.quantity } });
     }
-    
     res.json(order);
 });
 
@@ -91,7 +92,7 @@ app.delete('/api/orders', async (req, res) => {
     let query = {};
     if (start && end) query.date = { $gte: new Date(start), $lte: new Date(end) };
     await Order.deleteMany(query);
-    res.json({ msg: 'Zerad' });
+    res.json({ msg: 'Zerado' });
 });
 
 const PORT = process.env.PORT || 3000;

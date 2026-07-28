@@ -2,8 +2,8 @@ const API_URL = '/api';
 
 let allProducts = [];
 let allCategories = [];
-let cart = []; // Estado do Carrinho de Compras
-let pixInterval = null; // Controlador do loop do PIX
+let cart = []; 
+let pixInterval = null; 
 
 // ================= STARTUP E LOGIN =================
 window.onload = () => {
@@ -50,6 +50,47 @@ async function addProduct() {
     await fetch(`${API_URL}/products`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, price, category, stock }) });
     document.getElementById('prod-name').value = ''; document.getElementById('prod-price').value = ''; document.getElementById('prod-stock').value = ''; loadAdminData();
 }
+
+// === FUNÇÕES DE EDIÇÃO DE PRODUTO ===
+function openEditProdModal(id) {
+    const p = allProducts.find(x => x._id === id);
+    if (!p) return;
+    
+    document.getElementById('edit-prod-id').value = p._id;
+    document.getElementById('edit-prod-name').value = p.name;
+    document.getElementById('edit-prod-price').value = p.price;
+    document.getElementById('edit-prod-stock').value = p.stock;
+    
+    // Preenche as categorias no modal e seleciona a atual
+    document.getElementById('edit-prod-category').innerHTML = `<option value="">Categoria</option>` + 
+        allCategories.map(c => `<option value="${c.name}" ${p.category === c.name ? 'selected' : ''}>${c.name}</option>`).join('');
+    
+    document.getElementById('edit-prod-modal').classList.add('active');
+}
+
+function closeEditProdModal() {
+    document.getElementById('edit-prod-modal').classList.remove('active');
+}
+
+async function saveEditProduct() {
+    const id = document.getElementById('edit-prod-id').value;
+    const name = document.getElementById('edit-prod-name').value;
+    const price = parseFloat(document.getElementById('edit-prod-price').value);
+    const stock = parseInt(document.getElementById('edit-prod-stock').value) || 0;
+    const category = document.getElementById('edit-prod-category').value;
+    
+    if (!name || !price || !category) return alert('Preencha nome, preço e categoria!');
+    
+    await fetch(`${API_URL}/products/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, price, stock, category })
+    });
+    
+    closeEditProdModal();
+    loadAdminData();
+}
+
 async function deleteProduct(id) { if(confirm('Excluir produto?')) { await fetch(`${API_URL}/products/${id}`, { method: 'DELETE' }); loadAdminData(); } }
 
 async function fetchHistory() {
@@ -64,7 +105,6 @@ async function fetchHistory() {
     orders.forEach(order => {
         totalRev += order.total;
         const hora = new Date(order.date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-        // Formata os itens do pedido
         const itemsStr = order.items ? order.items.map(i => `${i.quantity}x ${i.productName}`).join(', ') : 'Venda antiga';
         
         listHTML += `<li>
@@ -97,8 +137,16 @@ async function fetchProducts(role) {
     const res = await fetch(`${API_URL}/products`);
     allProducts = await res.json();
     if (role === 'admin') {
+        // Agora exibe o botão de Edição junto com o de Excluir
         document.getElementById('admin-product-list').innerHTML = allProducts.map(p => `
-            <li><div><strong>${p.name}</strong> <small>Estoque: ${p.stock}</small></div><div>R$ ${p.price.toFixed(2)} <button class="btn-danger" onclick="deleteProduct('${p._id}')">X</button></div></li>
+            <li>
+                <div><strong>${p.name}</strong> <small>Estoque: ${p.stock}</small></div>
+                <div style="display: flex; gap: 5px; align-items: center;">
+                    <span style="margin-right: 10px;">R$ ${p.price.toFixed(2)}</span>
+                    <button style="background: #3b82f6; width: auto; padding: 6px 12px; margin: 0; font-size: 14px;" onclick="openEditProdModal('${p._id}')">✏️ Editar</button>
+                    <button class="btn-danger" style="width: auto; padding: 6px 12px; margin: 0;" onclick="deleteProduct('${p._id}')">X</button>
+                </div>
+            </li>
         `).join('');
     } else { renderWaiterGrid(allProducts); }
 }
@@ -120,10 +168,9 @@ function addToCart(productId) {
     const product = allProducts.find(p => p._id === productId);
     const existing = cart.find(item => item.id === productId);
     
-    // Verifica limite de estoque na hora de adicionar ao carrinho
     const currentQtd = existing ? existing.quantity : 0;
     if (currentQtd + 1 > product.stock) {
-        return alert(`Estoque insuficiente! Restam apenas ${product.stock} unidades.`);
+        return alert(`Estoque insuficiente! Restam apenas ${product.stock} unidades de ${product.name}.`);
     }
 
     if (existing) { existing.quantity++; } 
@@ -156,7 +203,6 @@ function updateCartUI() {
         closeCartModal();
     }
 
-    // Atualiza Modal do Carrinho
     document.getElementById('cart-items-list').innerHTML = cart.map(item => `
         <li>
             <div>${item.productName}<br><small>R$ ${item.price.toFixed(2)}</small></div>
@@ -185,16 +231,13 @@ async function processCheckout(method) {
         document.getElementById('pix-status-text').innerText = 'Aguardando Pagamento... ⏳';
         
         try {
-            // 1. Solicita PIX ao Back-End
             const res = await fetch(`${API_URL}/pix`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ total })
             });
             const pixData = await res.json();
             
-            // 2. Exibe QR Code (Base64)
             document.getElementById('pix-qr-container').innerHTML = `<img src="data:image/jpeg;base64,${pixData.qr_code_base64}" style="width: 100%; max-width: 250px; border-radius: 8px;">`;
             
-            // 3. Inicia o loop para checar o status de 3 em 3 segundos
             pixInterval = setInterval(async () => {
                 const check = await fetch(`${API_URL}/pix/${pixData.id}`);
                 const statusData = await check.json();
@@ -204,7 +247,6 @@ async function processCheckout(method) {
                     document.getElementById('pix-status-text').innerText = '✅ PAGO COM SUCESSO!';
                     document.getElementById('pix-status-text').style.color = 'var(--success)';
                     
-                    // Conclui pedido
                     setTimeout(() => finalizeOrder('Pix'), 1500);
                 }
             }, 3000);
@@ -214,7 +256,6 @@ async function processCheckout(method) {
             cancelPix();
         }
     } else {
-        // Dinheiro ou Cartão
         finalizeOrder(method);
     }
 }
@@ -222,7 +263,7 @@ async function processCheckout(method) {
 function cancelPix() {
     clearInterval(pixInterval);
     document.getElementById('pix-modal').classList.remove('active');
-    openCartModal(); // Volta pro carrinho
+    openCartModal(); 
 }
 
 // ================= FINALIZAR E IMPRIMIR =================
@@ -231,13 +272,11 @@ function generateUniqueId() { return Math.random().toString(36).substring(2, 8).
 async function finalizeOrder(paymentMethod) {
     const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     
-    // 1. Salvar no Banco (Isso já vai abater o estoque automaticamente no back-end)
     await fetch(`${API_URL}/orders`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items: cart, total: total, paymentMethod: paymentMethod, waiter: 'Garçom' })
     });
 
-    // 2. Gerar HTML de Impressão (Múltiplas Fichas para todos os itens)
     let printHTML = '';
     const dateStr = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
     
@@ -258,13 +297,11 @@ async function finalizeOrder(paymentMethod) {
 
     document.getElementById('print-area').innerHTML = printHTML;
     
-    // 3. Limpar Tudo e Imprimir
     cart = [];
     updateCartUI();
     document.getElementById('pix-modal').classList.remove('active');
     closeCartModal();
     
-    // Atualiza a tela de fundo para refletir o novo estoque
     fetchProducts('waiter');
 
     setTimeout(() => { window.print(); }, 200);
