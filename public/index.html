@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conteiner Beer - Sistema de Fichas</title>
+    <title>Conteiner Beer - PDV</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,8 +11,7 @@
     <div id="login-view" class="view active">
         <div class="login-box">
             <h1>Conteiner Beer</h1>
-            <h2>Acesso ao Sistema</h2>
-            <input type="password" id="pin-input" placeholder="Digite a Senha (Admin ou Garçom)">
+            <input type="password" id="pin-input" placeholder="Senha de Acesso">
             <button onclick="login()">Entrar</button>
         </div>
     </div>
@@ -20,21 +19,20 @@
     <!-- TELA ADMIN -->
     <div id="admin-view" class="view">
         <header>
-            <h1>Painel Administrativo</h1>
+            <h1>Painel Admin</h1>
             <button onclick="logout()" class="btn-danger">Sair</button>
         </header>
         <main>
             <div class="dashboard-grid">
                 <section class="card">
-                    <h3>Faturamento de Hoje</h3>
+                    <h3>Faturamento (Hoje)</h3>
                     <h2 id="total-revenue">R$ 0,00</h2>
-                    <button onclick="clearRevenue()" class="btn-warning">Zerar Faturamento</button>
+                    <button onclick="clearRevenue()" class="btn-warning">Zerar Caixa</button>
                 </section>
-
                 <section class="card">
-                    <h3>Gerenciar Categorias</h3>
+                    <h3>Nova Categoria</h3>
                     <div class="form-group-2">
-                        <input type="text" id="cat-name" placeholder="Ex: Cervejas">
+                        <input type="text" id="cat-name" placeholder="Nome">
                         <button onclick="addCategory()">Add</button>
                     </div>
                     <ul id="admin-category-list" class="list mini-list"></ul>
@@ -43,18 +41,18 @@
             
             <div class="dashboard-grid">
                 <section class="card">
-                    <h3>Gerenciar Produtos</h3>
+                    <h3>Cadastrar Produto e Estoque</h3>
                     <div class="form-group-3">
                         <input type="text" id="prod-name" placeholder="Nome">
-                        <input type="number" id="prod-price" placeholder="Preço" step="0.01">
-                        <select id="prod-category"><option value="">Sem categoria</option></select>
-                        <button onclick="addProduct()">Add</button>
+                        <input type="number" id="prod-price" placeholder="Preço R$" step="0.01">
+                        <input type="number" id="prod-stock" placeholder="Qtd Estoque" step="1">
+                        <select id="prod-category"><option value="">Categoria</option></select>
+                        <button onclick="addProduct()">Salvar</button>
                     </div>
                     <ul id="admin-product-list" class="list"></ul>
                 </section>
-
                 <section class="card">
-                    <h3>Histórico de Vendas (Hoje)</h3>
+                    <h3>Últimas Vendas</h3>
                     <ul id="admin-history-list" class="list"></ul>
                 </section>
             </div>
@@ -64,48 +62,56 @@
     <!-- TELA GARÇOM -->
     <div id="waiter-view" class="view">
         <header>
-            <h1>Emissão de Fichas</h1>
+            <h1>Caixa Rápido</h1>
             <button onclick="logout()" class="btn-danger">Sair</button>
         </header>
         <main>
-            <!-- Filtro de Categorias -->
-            <div id="category-tabs" class="tabs-container">
-                <button class="tab active" onclick="filterProducts('Todas', this)">Todas</button>
-                <!-- Categorias carregadas via JS -->
-            </div>
-
-            <!-- Busca -->
-            <div class="search-container">
-                <input type="text" id="search-input" placeholder="Buscar produto..." onkeyup="searchProducts()">
-            </div>
-
-            <!-- Produtos -->
-            <div id="waiter-product-grid" class="grid"></div>
+            <div id="category-tabs" class="tabs-container"></div>
+            <div class="search-container"><input type="text" id="search-input" placeholder="Buscar..." onkeyup="searchProducts()"></div>
+            <div id="waiter-product-grid" class="grid" style="padding-bottom: 80px;"></div>
         </main>
-    </div>
 
-    <!-- MODAL DE QUANTIDADE -->
-    <div id="qtd-modal" class="modal">
-        <div class="modal-box">
-            <h2 id="modal-prod-name">Produto</h2>
-            <p>Preço Unitário: <span id="modal-prod-price">R$ 0,00</span></p>
-            
-            <div class="qtd-controls">
-                <button class="btn-circle" onclick="changeQtd(-1)">-</button>
-                <span id="modal-qtd">1</span>
-                <button class="btn-circle" onclick="changeQtd(1)">+</button>
+        <!-- BOTÃO FLUTUANTE DO CARRINHO -->
+        <div id="cart-floating-btn" onclick="openCartModal()">
+            <div class="cart-info">
+                <span id="cart-count">0 itens</span>
+                <strong id="cart-total">R$ 0,00</strong>
             </div>
-
-            <div class="modal-total">Total: <strong id="modal-total-price">R$ 0,00</strong></div>
-            
-            <div class="modal-actions">
-                <button class="btn-danger" onclick="closeModal()">Cancelar</button>
-                <button class="btn-success" onclick="confirmOrder()">Imprimir Fichas</button>
-            </div>
+            <span>Ver Carrinho 🛒</span>
         </div>
     </div>
 
-    <!-- ÁREA DE IMPRESSÃO (Oculta na tela, ativada no window.print) -->
+    <!-- MODAL DO CARRINHO (CHECKOUT) -->
+    <div id="cart-modal" class="modal">
+        <div class="modal-box cart-modal-box">
+            <h2>Carrinho de Compras</h2>
+            <ul id="cart-items-list" class="list" style="margin: 20px 0; max-height: 250px;"></ul>
+            <div class="modal-total">Total: <strong id="checkout-total">R$ 0,00</strong></div>
+            
+            <h3>Forma de Pagamento</h3>
+            <div class="payment-methods">
+                <button class="btn-pay" onclick="processCheckout('Dinheiro')">💵 Dinheiro</button>
+                <button class="btn-pay" onclick="processCheckout('Cartao')">💳 Cartão</button>
+                <button class="btn-pay pix-btn" onclick="processCheckout('Pix')">💠 PIX</button>
+            </div>
+            <button class="btn-danger" style="margin-top: 15px;" onclick="closeCartModal()">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- MODAL DO PIX QR CODE -->
+    <div id="pix-modal" class="modal">
+        <div class="modal-box">
+            <h2 style="color: #0ea5e9;">Pagamento PIX</h2>
+            <p>Escaneie o QR Code abaixo:</p>
+            <div id="pix-qr-container" style="background: white; padding: 15px; border-radius: 10px; margin: 20px auto; width: fit-content; min-height: 200px;">
+                <p style="color: black;">Gerando PIX...</p>
+            </div>
+            <p id="pix-status-text" style="color: #f59e0b; font-weight: bold; margin-bottom: 15px;">Aguardando Pagamento... ⏳</p>
+            <button class="btn-danger" onclick="cancelPix()">Cancelar PIX</button>
+        </div>
+    </div>
+
+    <!-- ÁREA DE IMPRESSÃO -->
     <div id="print-area"></div>
 
     <script src="app.js"></script>
