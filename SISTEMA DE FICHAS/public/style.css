@@ -1,0 +1,86 @@
+:root {
+    --bg-dark: #121212;
+    --card-dark: #1e1e1e;
+    --primary: #f39c12;
+    --text: #ffffff;
+    --danger: #e74c3c;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text);
+    margin: 0;
+    padding: 0;
+}
+
+.view { display: none; padding: 20px; }
+.view.active { display: block; }
+
+.login-box {
+    max-width: 400px;
+    margin: 100px auto;
+    background: var(--card-dark);
+    padding: 40px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+input {
+    width: 90%;
+    padding: 15px;
+    margin: 10px 0;
+    border: none;
+    border-radius: 5px;
+    background: #333;
+    color: white;
+    font-size: 16px;
+}
+
+button {
+    width: 100%;
+    padding: 15px;
+    background: var(--primary);
+    color: #121212;
+    border: none;
+    border-radius: 5px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: 0.3s;
+}
+
+button:hover { opacity: 0.8; }
+.btn-danger { background: var(--danger); color: white; width: auto; padding: 10px 20px; }
+.btn-warning { background: #e67e22; color: white; }
+
+header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
+.card { background: var(--card-dark); padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+
+.list { list-style: none; padding: 0; }
+.list li { display: flex; justify-content: space-between; padding: 15px; background: #333; margin-bottom: 5px; border-radius: 5px; }
+.list li button { width: auto; padding: 5px 10px; margin: 0; background: var(--danger); color: white; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; }
+.grid-item { background: var(--primary); color: #121212; padding: 30px 10px; text-align: center; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 18px; }
+
+#print-area { display: none; }
+
+/* CONFIGURAÇÃO DA IMPRESSORA TÉRMICA (58mm) */
+@media print {
+    body * { visibility: hidden; }
+    #print-area, #print-area * { visibility: visible; font-family: monospace; }
+    #print-area {
+        display: block;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 58mm; /* Ajuste para 80mm se sua impressora for maior */
+        margin: 0;
+        padding: 0;
+        color: black;
+        background: white;
+    }
+}
