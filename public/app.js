@@ -1,6 +1,11 @@
 const API_URL = '/api';
 
-// Controle de Telas (Navegação SPA)
+// Variáveis Globais (Estado do App)
+let allProducts = [];
+let allCategories = [];
+let orderState = { name: '', price: 0, quantity: 1 };
+
+// Controle de Telas
 function switchView(viewId) {
     document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
     document.getElementById(viewId).classList.add('active');
@@ -8,40 +13,63 @@ function switchView(viewId) {
 
 function login() {
     const pin = document.getElementById('pin-input').value;
-    if (pin === 'admin123') {
-        switchView('admin-view');
-        loadAdminData();
-    } else if (pin === 'garcom123') {
-        switchView('waiter-view');
-        loadWaiterData();
-    } else {
-        alert('Senha incorreta!');
-    }
+    if (pin === 'admin123') { switchView('admin-view'); loadAdminData(); } 
+    else if (pin === 'garcom123') { switchView('waiter-view'); loadWaiterData(); } 
+    else { alert('Senha incorreta!'); }
     document.getElementById('pin-input').value = '';
 }
 
-function logout() {
-    switchView('login-view');
+function logout() { switchView('login-view'); }
+
+// ================= ADMIN LOGIC =================
+async function loadAdminData() {
+    await fetchCategories();
+    await fetchProducts('admin');
+    await fetchHistory();
 }
 
-// Lógica do Admin
-async function loadAdminData() {
-    loadProducts('admin');
-    const res = await fetch(`${API_URL}/orders/today`);
-    const orders = await res.json();
-    const total = orders.reduce((sum, order) => sum + order.price, 0);
-    document.getElementById('total-revenue').innerText = `R$ ${total.toFixed(2)}`;
+async function fetchCategories() {
+    const res = await fetch(`${API_URL}/categories`);
+    allCategories = await res.json();
+    
+    // Atualiza lista Admin
+    document.getElementById('admin-category-list').innerHTML = allCategories.map(c => `
+        <li><span>${c.name}</span> <button class="btn-danger" onclick="deleteCategory('${c._id}')">X</button></li>
+    `).join('');
+
+    // Atualiza Select do formulário de Produto
+    document.getElementById('prod-category').innerHTML = `
+        <option value="">Selecione a Categoria</option>
+        ${allCategories.map(c => `<option value="${c.name}">${c.name}</option>`).join('')}
+    `;
+}
+
+async function addCategory() {
+    const name = document.getElementById('cat-name').value;
+    if (!name) return;
+    await fetch(`${API_URL}/categories`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name })
+    });
+    document.getElementById('cat-name').value = '';
+    loadAdminData();
+}
+
+async function deleteCategory(id) {
+    if(confirm('Excluir categoria?')) {
+        await fetch(`${API_URL}/categories/${id}`, { method: 'DELETE' });
+        loadAdminData();
+    }
 }
 
 async function addProduct() {
     const name = document.getElementById('prod-name').value;
     const price = parseFloat(document.getElementById('prod-price').value);
-    if (!name || !price) return alert('Preencha os campos!');
+    const category = document.getElementById('prod-category').value;
+    
+    if (!name || !price || !category) return alert('Preencha nome, preço e categoria!');
 
     await fetch(`${API_URL}/products`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, price, category: 'Geral' })
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, price, category })
     });
     
     document.getElementById('prod-name').value = '';
@@ -50,57 +78,161 @@ async function addProduct() {
 }
 
 async function deleteProduct(id) {
-    if(confirm('Tem certeza?')) {
+    if(confirm('Excluir produto?')) {
         await fetch(`${API_URL}/products/${id}`, { method: 'DELETE' });
         loadAdminData();
     }
 }
 
+async function fetchHistory() {
+    const res = await fetch(`${API_URL}/orders/today`);
+    const orders = await res.json();
+    
+    let total = 0;
+    document.getElementById('admin-history-list').innerHTML = orders.map(o => {
+        total += o.total;
+        const hora = new Date(o.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        return `<li>
+            <div><strong>${o.quantity}x ${o.productName}</strong> <small>${hora}</small></div>
+            <span>R$ ${o.total.toFixed(2)}</span>
+        </li>`;
+    }).join('');
+    
+    document.getElementById('total-revenue').innerText = `R$ ${total.toFixed(2)}`;
+}
+
 async function clearRevenue() {
-    if(confirm('Deseja realmente zerar o faturamento de hoje? Isso não pode ser desfeito.')) {
+    if(confirm('Zerar faturamento de HOJE?')) {
         await fetch(`${API_URL}/orders/clear-today`, { method: 'DELETE' });
         loadAdminData();
     }
 }
 
-// Lógica do Garçom e Impressão
+// ================= WAITER LOGIC =================
 async function loadWaiterData() {
-    loadProducts('waiter');
+    const resCat = await fetch(`${API_URL}/categories`);
+    allCategories = await resCat.json();
+    
+    // Montar Abas
+    document.getElementById('category-tabs').innerHTML = `
+        <button class="tab active" onclick="filterProducts('Todas', this)">Todas</button>
+        ${allCategories.map(c => `<button class="tab" onclick="filterProducts('${c.name}', this)">${c.name}</button>`).join('')}
+    `;
+
+    await fetchProducts('waiter');
 }
 
-async function loadProducts(role) {
+async function fetchProducts(role) {
     const res = await fetch(`${API_URL}/products`);
-    const products = await res.json();
+    allProducts = await res.json();
     
     if (role === 'admin') {
-        const list = document.getElementById('admin-product-list');
-        list.innerHTML = products.map(p => `
-            <li>${p.name} - R$ ${p.price.toFixed(2)} 
-            <button onclick="deleteProduct('${p._id}')">X</button></li>
+        document.getElementById('admin-product-list').innerHTML = allProducts.map(p => `
+            <li>
+                <div><strong>${p.name}</strong> <small>${p.category}</small></div>
+                <div>R$ ${p.price.toFixed(2)} <button class="btn-danger" onclick="deleteProduct('${p._id}')">X</button></div>
+            </li>
         `).join('');
     } else {
-        const grid = document.getElementById('waiter-product-grid');
-        grid.innerHTML = products.map(p => `
-            <div class="grid-item" onclick="issueTicket('${p.name}', ${p.price})">
-                ${p.name}<br><small>R$ ${p.price.toFixed(2)}</small>
-            </div>
-        `).join('');
+        renderWaiterGrid(allProducts);
     }
 }
 
-async function issueTicket(name, price) {
-    // 1. Salva no banco (Registra a venda)
+function renderWaiterGrid(products) {
+    const grid = document.getElementById('waiter-product-grid');
+    grid.innerHTML = products.map(p => `
+        <div class="grid-item" onclick="openModal('${p.name}', ${p.price})">
+            <strong>${p.name}</strong><br>
+            <span>R$ ${p.price.toFixed(2)}</span>
+        </div>
+    `).join('');
+}
+
+function filterProducts(category, btnElement) {
+    // Atualizar visual da aba ativa
+    document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
+    btnElement.classList.add('active');
+
+    if (category === 'Todas') {
+        renderWaiterGrid(allProducts);
+    } else {
+        const filtrados = allProducts.filter(p => p.category === category);
+        renderWaiterGrid(filtrados);
+    }
+}
+
+function searchProducts() {
+    const termo = document.getElementById('search-input').value.toLowerCase();
+    const filtrados = allProducts.filter(p => p.name.toLowerCase().includes(termo));
+    renderWaiterGrid(filtrados);
+}
+
+// ================= MODAL & IMPRESSÃO =================
+function openModal(name, price) {
+    orderState = { name, price, quantity: 1 };
+    updateModalUI();
+    document.getElementById('qtd-modal').classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('qtd-modal').classList.remove('active');
+}
+
+function changeQtd(amount) {
+    if (orderState.quantity + amount >= 1) {
+        orderState.quantity += amount;
+        updateModalUI();
+    }
+}
+
+function updateModalUI() {
+    document.getElementById('modal-prod-name').innerText = orderState.name;
+    document.getElementById('modal-prod-price').innerText = `R$ ${orderState.price.toFixed(2)}`;
+    document.getElementById('modal-qtd').innerText = orderState.quantity;
+    
+    const total = orderState.quantity * orderState.price;
+    document.getElementById('modal-total-price').innerText = `R$ ${total.toFixed(2)}`;
+}
+
+async function confirmOrder() {
+    const total = orderState.quantity * orderState.price;
+
+    // 1. Salvar venda no banco
     await fetch(`${API_URL}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productName: name, price, waiter: 'Garçom 1' })
+        body: JSON.stringify({ 
+            productName: orderState.name, 
+            price: orderState.price, 
+            quantity: orderState.quantity,
+            total: total,
+            waiter: 'Garçom 1' 
+        })
     });
 
-    // 2. Prepara a ficha para impressão
-    document.getElementById('print-prod-name').innerText = name.toUpperCase();
-    document.getElementById('print-prod-price').innerText = `R$ ${price.toFixed(2)}`;
-    document.getElementById('print-date').innerText = new Date().toLocaleString();
+    // 2. Gerar HTML de impressão (Múltiplas fichas baseadas na quantidade)
+    let printHTML = '';
+    const dateStr = new Date().toLocaleString();
+    
+    for (let i = 0; i < orderState.quantity; i++) {
+        printHTML += `
+            <div class="ticket">
+                <h3>Conteiner Beer</h3>
+                <p>--- FICHA INDIVIDUAL ---</p>
+                <h2>${orderState.name}</h2>
+                <h1>R$ ${orderState.price.toFixed(2)}</h1>
+                <p>${dateStr}</p>
+            </div>
+        `;
+    }
 
-    // 3. Aciona o diálogo de impressão do sistema
+    document.getElementById('print-area').innerHTML = printHTML;
+    
+    // 3. Imprimir e Fechar Modal
     window.print();
+    closeModal();
+    
+    // Limpar busca (opcional, para agilizar próxima venda)
+    document.getElementById('search-input').value = '';
+    renderWaiterGrid(allProducts);
 }

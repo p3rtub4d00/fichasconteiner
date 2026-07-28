@@ -14,7 +14,6 @@
             <h2>Acesso ao Sistema</h2>
             <input type="password" id="pin-input" placeholder="Digite a Senha (Admin ou Garçom)">
             <button onclick="login()">Entrar</button>
-            <p class="hint">Dica para teste: admin123 ou garcom123</p>
         </div>
     </div>
 
@@ -25,21 +24,40 @@
             <button onclick="logout()" class="btn-danger">Sair</button>
         </header>
         <main>
-            <section class="card">
-                <h3>Faturamento de Hoje</h3>
-                <h2 id="total-revenue">R$ 0,00</h2>
-                <button onclick="clearRevenue()" class="btn-warning">Limpar Faturamento</button>
-            </section>
+            <div class="dashboard-grid">
+                <section class="card">
+                    <h3>Faturamento de Hoje</h3>
+                    <h2 id="total-revenue">R$ 0,00</h2>
+                    <button onclick="clearRevenue()" class="btn-warning">Zerar Faturamento</button>
+                </section>
+
+                <section class="card">
+                    <h3>Gerenciar Categorias</h3>
+                    <div class="form-group-2">
+                        <input type="text" id="cat-name" placeholder="Ex: Cervejas">
+                        <button onclick="addCategory()">Add</button>
+                    </div>
+                    <ul id="admin-category-list" class="list mini-list"></ul>
+                </section>
+            </div>
             
-            <section class="card">
-                <h3>Gerenciar Produtos</h3>
-                <div class="form-group">
-                    <input type="text" id="prod-name" placeholder="Nome do Produto (ex: Cerveja 600ml)">
-                    <input type="number" id="prod-price" placeholder="Preço (ex: 15.00)" step="0.01">
-                    <button onclick="addProduct()">Adicionar</button>
-                </div>
-                <ul id="admin-product-list" class="list"></ul>
-            </section>
+            <div class="dashboard-grid">
+                <section class="card">
+                    <h3>Gerenciar Produtos</h3>
+                    <div class="form-group-3">
+                        <input type="text" id="prod-name" placeholder="Nome">
+                        <input type="number" id="prod-price" placeholder="Preço" step="0.01">
+                        <select id="prod-category"><option value="">Sem categoria</option></select>
+                        <button onclick="addProduct()">Add</button>
+                    </div>
+                    <ul id="admin-product-list" class="list"></ul>
+                </section>
+
+                <section class="card">
+                    <h3>Histórico de Vendas (Hoje)</h3>
+                    <ul id="admin-history-list" class="list"></ul>
+                </section>
+            </div>
         </main>
     </div>
 
@@ -50,20 +68,45 @@
             <button onclick="logout()" class="btn-danger">Sair</button>
         </header>
         <main>
+            <!-- Filtro de Categorias -->
+            <div id="category-tabs" class="tabs-container">
+                <button class="tab active" onclick="filterProducts('Todas', this)">Todas</button>
+                <!-- Categorias carregadas via JS -->
+            </div>
+
+            <!-- Busca -->
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Buscar produto..." onkeyup="searchProducts()">
+            </div>
+
+            <!-- Produtos -->
             <div id="waiter-product-grid" class="grid"></div>
         </main>
     </div>
 
-    <!-- ÁREA DE IMPRESSÃO (Oculta na tela, visível na impressora) -->
-    <div id="print-area">
-        <h3 style="text-align:center;">Conteiner Beer</h3>
-        <p>-------------------------</p>
-        <h2 id="print-prod-name" style="text-align:center;">PRODUTO</h2>
-        <h1 id="print-prod-price" style="text-align:center;">R$ 0,00</h1>
-        <p>-------------------------</p>
-        <p id="print-date"></p>
-        <p>Validade: Apenas hoje</p>
+    <!-- MODAL DE QUANTIDADE -->
+    <div id="qtd-modal" class="modal">
+        <div class="modal-box">
+            <h2 id="modal-prod-name">Produto</h2>
+            <p>Preço Unitário: <span id="modal-prod-price">R$ 0,00</span></p>
+            
+            <div class="qtd-controls">
+                <button class="btn-circle" onclick="changeQtd(-1)">-</button>
+                <span id="modal-qtd">1</span>
+                <button class="btn-circle" onclick="changeQtd(1)">+</button>
+            </div>
+
+            <div class="modal-total">Total: <strong id="modal-total-price">R$ 0,00</strong></div>
+            
+            <div class="modal-actions">
+                <button class="btn-danger" onclick="closeModal()">Cancelar</button>
+                <button class="btn-success" onclick="confirmOrder()">Imprimir Fichas</button>
+            </div>
+        </div>
     </div>
+
+    <!-- ÁREA DE IMPRESSÃO (Oculta na tela, ativada no window.print) -->
+    <div id="print-area"></div>
 
     <script src="app.js"></script>
 </body>
