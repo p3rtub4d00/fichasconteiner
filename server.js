@@ -18,65 +18,49 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/bar-pdv', {
 const CategorySchema = new mongoose.Schema({ name: String });
 const Category = mongoose.model('Category', CategorySchema);
 
-const ProductSchema = new mongoose.Schema({
-    name: String,
-    price: Number,
-    category: String
-});
+const ProductSchema = new mongoose.Schema({ name: String, price: Number, category: String });
 const Product = mongoose.model('Product', ProductSchema);
 
 const OrderSchema = new mongoose.Schema({
-    productName: String,
-    price: Number,      // Preço unitário
-    quantity: Number,   // Quantidade vendida
-    total: Number,      // Total da venda
-    waiter: String,
-    date: { type: Date, default: Date.now }
+    productName: String, price: Number, quantity: Number, total: Number,
+    waiter: String, date: { type: Date, default: Date.now }
 });
 const Order = mongoose.model('Order', OrderSchema);
 
-// --- Rotas de Categorias ---
+// Rotas de Categorias e Produtos
 app.get('/api/categories', async (req, res) => res.json(await Category.find()));
 app.post('/api/categories', async (req, res) => res.json(await new Category(req.body).save()));
-app.delete('/api/categories/:id', async (req, res) => {
-    await Category.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Categoria removida' });
-});
+app.delete('/api/categories/:id', async (req, res) => { await Category.findByIdAndDelete(req.params.id); res.json({ message: 'OK' }); });
 
-// --- Rotas de Produtos ---
 app.get('/api/products', async (req, res) => res.json(await Product.find()));
 app.post('/api/products', async (req, res) => res.json(await new Product(req.body).save()));
-app.delete('/api/products/:id', async (req, res) => {
-    await Product.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Produto removido' });
-});
+app.delete('/api/products/:id', async (req, res) => { await Product.findByIdAndDelete(req.params.id); res.json({ message: 'OK' }); });
 
-// --- Rotas de Vendas (Faturamento) ---
+// Rotas de Vendas (Agora o Frontend dita o início e fim do dia baseado no fuso horário local)
 app.post('/api/orders', async (req, res) => {
     const order = new Order(req.body);
     await order.save();
     res.json(order);
 });
 
-app.get('/api/orders/today', async (req, res) => {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
-    
-    // Retorna as vendas de hoje ordenadas das mais recentes para as mais antigas
-    const orders = await Order.find({ date: { $gte: start, $lte: end } }).sort({ date: -1 });
+app.get('/api/orders', async (req, res) => {
+    const { start, end } = req.query;
+    let query = {};
+    if (start && end) {
+        query.date = { $gte: new Date(start), $lte: new Date(end) };
+    }
+    const orders = await Order.find(query).sort({ date: -1 });
     res.json(orders);
 });
 
-app.delete('/api/orders/clear-today', async (req, res) => {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
-    
-    await Order.deleteMany({ date: { $gte: start, $lte: end } });
-    res.json({ message: 'Faturamento zerado' });
+app.delete('/api/orders', async (req, res) => {
+    const { start, end } = req.query;
+    let query = {};
+    if (start && end) {
+        query.date = { $gte: new Date(start), $lte: new Date(end) };
+    }
+    await Order.deleteMany(query);
+    res.json({ message: 'Faturamento zerado no período' });
 });
 
 const PORT = process.env.PORT || 3000;
