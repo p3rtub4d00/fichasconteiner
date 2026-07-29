@@ -58,13 +58,14 @@ header { display: flex; justify-content: space-between; align-items: center; pad
 .cart-modal-box { max-height: 90vh; overflow-y: auto; }
 .modal-total { font-size: 16px; margin-bottom: 20px; color: var(--text-muted); }
 .modal-total strong { color: var(--success); font-size: 26px; display: block; margin-top: 5px; }
+.modal-actions { display: flex; justify-content: space-between; gap: 10px; }
+.modal-actions button { width: 100%; }
 
 .payment-methods { display: grid; grid-template-columns: 1fr; gap: 10px; }
 .btn-pay { background: var(--bg-color); border: 2px solid var(--border); color: var(--text-main); }
 .btn-pay:hover { border-color: var(--primary); }
 .pix-btn { background: #0ea5e9; color: white; border: none; }
 
-/* CONTROLE DE QTD NO CARRINHO */
 .cart-item-controls { display: flex; align-items: center; gap: 10px; }
 .cart-item-controls button { padding: 4px 10px; font-size: 16px; width: auto; background: #334155; }
 

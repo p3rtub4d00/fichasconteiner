@@ -21,7 +21,8 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/bar-pdv', {
 // Modelos
 const Category = mongoose.model('Category', new mongoose.Schema({ name: String }));
 const Product = mongoose.model('Product', new mongoose.Schema({ 
-    name: String, price: Number, category: String, stock: { type: Number, default: 0 } 
+    name: String, price: Number, category: String, stock: { type: Number, default: 0 },
+    ticketCount: { type: Number, default: 1 } // NOVO: Quantidade de fichas por item
 }));
 const Order = mongoose.model('Order', new mongoose.Schema({
     items: Array, total: Number, paymentMethod: String, waiter: String, date: { type: Date, default: Date.now }
@@ -32,17 +33,16 @@ app.get('/api/categories', async (req, res) => res.json(await Category.find()));
 app.post('/api/categories', async (req, res) => res.json(await new Category(req.body).save()));
 app.delete('/api/categories/:id', async (req, res) => { await Category.findByIdAndDelete(req.params.id); res.json({ msg: 'OK' }); });
 
-// --- Rotas de Produtos (Agora com Edição) ---
+// --- Rotas de Produtos ---
 app.get('/api/products', async (req, res) => res.json(await Product.find()));
 app.post('/api/products', async (req, res) => res.json(await new Product(req.body).save()));
-// NOVA ROTA: Editar Produto
 app.put('/api/products/:id', async (req, res) => {
     await Product.findByIdAndUpdate(req.params.id, req.body);
     res.json({ msg: 'Produto atualizado' });
 });
 app.delete('/api/products/:id', async (req, res) => { await Product.findByIdAndDelete(req.params.id); res.json({ msg: 'OK' }); });
 
-// --- Integração Mercado Pago (Gerar PIX e Checar Status) ---
+// --- Integração Mercado Pago ---
 app.post('/api/pix', async (req, res) => {
     try {
         const result = await payment.create({
@@ -71,13 +71,13 @@ app.get('/api/pix/:id', async (req, res) => {
 // --- Rotas de Vendas e Baixa de Estoque ---
 app.post('/api/orders', async (req, res) => {
     const orderData = req.body;
-    const order = new Order(orderData);
-    await order.save();
+    await new Order(orderData).save();
     
+    // Abate o estoque
     for (let item of orderData.items) {
         await Product.findByIdAndUpdate(item.id, { $inc: { stock: -item.quantity } });
     }
-    res.json(order);
+    res.json({ msg: 'Pedido salvo' });
 });
 
 app.get('/api/orders', async (req, res) => {

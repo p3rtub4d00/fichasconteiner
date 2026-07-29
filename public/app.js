@@ -45,10 +45,15 @@ async function addProduct() {
     const name = document.getElementById('prod-name').value;
     const price = parseFloat(document.getElementById('prod-price').value);
     const stock = parseInt(document.getElementById('prod-stock').value) || 0;
+    const ticketCount = parseInt(document.getElementById('prod-tickets').value) || 1; 
     const category = document.getElementById('prod-category').value;
+    
     if (!name || !price || !category) return alert('Preencha os campos obrigatórios!');
-    await fetch(`${API_URL}/products`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, price, category, stock }) });
-    document.getElementById('prod-name').value = ''; document.getElementById('prod-price').value = ''; document.getElementById('prod-stock').value = ''; loadAdminData();
+    await fetch(`${API_URL}/products`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, price, category, stock, ticketCount }) });
+    
+    document.getElementById('prod-name').value = ''; document.getElementById('prod-price').value = ''; 
+    document.getElementById('prod-stock').value = ''; document.getElementById('prod-tickets').value = '1'; 
+    loadAdminData();
 }
 
 // === FUNÇÕES DE EDIÇÃO DE PRODUTO ===
@@ -60,23 +65,22 @@ function openEditProdModal(id) {
     document.getElementById('edit-prod-name').value = p.name;
     document.getElementById('edit-prod-price').value = p.price;
     document.getElementById('edit-prod-stock').value = p.stock;
+    document.getElementById('edit-prod-tickets').value = p.ticketCount || 1;
     
-    // Preenche as categorias no modal e seleciona a atual
     document.getElementById('edit-prod-category').innerHTML = `<option value="">Categoria</option>` + 
         allCategories.map(c => `<option value="${c.name}" ${p.category === c.name ? 'selected' : ''}>${c.name}</option>`).join('');
     
     document.getElementById('edit-prod-modal').classList.add('active');
 }
 
-function closeEditProdModal() {
-    document.getElementById('edit-prod-modal').classList.remove('active');
-}
+function closeEditProdModal() { document.getElementById('edit-prod-modal').classList.remove('active'); }
 
 async function saveEditProduct() {
     const id = document.getElementById('edit-prod-id').value;
     const name = document.getElementById('edit-prod-name').value;
     const price = parseFloat(document.getElementById('edit-prod-price').value);
     const stock = parseInt(document.getElementById('edit-prod-stock').value) || 0;
+    const ticketCount = parseInt(document.getElementById('edit-prod-tickets').value) || 1;
     const category = document.getElementById('edit-prod-category').value;
     
     if (!name || !price || !category) return alert('Preencha nome, preço e categoria!');
@@ -84,7 +88,7 @@ async function saveEditProduct() {
     await fetch(`${API_URL}/products/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, price, stock, category })
+        body: JSON.stringify({ name, price, stock, category, ticketCount })
     });
     
     closeEditProdModal();
@@ -137,10 +141,9 @@ async function fetchProducts(role) {
     const res = await fetch(`${API_URL}/products`);
     allProducts = await res.json();
     if (role === 'admin') {
-        // Agora exibe o botão de Edição junto com o de Excluir
         document.getElementById('admin-product-list').innerHTML = allProducts.map(p => `
             <li>
-                <div><strong>${p.name}</strong> <small>Estoque: ${p.stock}</small></div>
+                <div><strong>${p.name}</strong> <small>Estoque: ${p.stock} | Fichas: ${p.ticketCount || 1}</small></div>
                 <div style="display: flex; gap: 5px; align-items: center;">
                     <span style="margin-right: 10px;">R$ ${p.price.toFixed(2)}</span>
                     <button style="background: #3b82f6; width: auto; padding: 6px 12px; margin: 0; font-size: 14px;" onclick="openEditProdModal('${p._id}')">✏️ Editar</button>
@@ -174,7 +177,7 @@ function addToCart(productId) {
     }
 
     if (existing) { existing.quantity++; } 
-    else { cart.push({ id: product._id, productName: product.name, price: product.price, quantity: 1 }); }
+    else { cart.push({ id: product._id, productName: product.name, price: product.price, quantity: 1, ticketCount: product.ticketCount || 1 }); }
     updateCartUI();
 }
 
@@ -280,18 +283,19 @@ async function finalizeOrder(paymentMethod) {
     let printHTML = '';
     const dateStr = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
     
+    // A MÁGICA DE FRACIONAR FICHAS
     cart.forEach(item => {
-        for (let i = 0; i < item.quantity; i++) {
-            printHTML += `
-                <div class="ticket">
-                    <h3>Conteiner Beer</h3>
-                    <p>--- FICHA INDIVIDUAL ---</p>
-                    <h2>${item.productName}</h2>
-                    <h1>R$ ${item.price.toFixed(2)}</h1>
-                    <p>CÓDIGO DE AUTENTICAÇÃO:</p>
-                    <div class="ticket-id">${generateUniqueId()}</div>
-                    <p>${dateStr}</p>
-                </div>`;
+        const tCount = item.ticketCount || 1; 
+        
+        for (let i = 0; i < item.quantity; i++) { 
+            if (tCount === 1) {
+                printHTML += gerarFichaHtml(item.productName, item.price, dateStr, "");
+            } else {
+                for (let f = 1; f <= tCount; f++) {
+                    const tarja = `<div style="background-color: black; color: white; margin: 10px 0; padding: 5px; border-radius: 4px; font-size: 16px;">FRACÃO ${f}/${tCount}</div>`;
+                    printHTML += gerarFichaHtml(item.productName, item.price, dateStr, tarja);
+                }
+            }
         }
     });
 
@@ -305,4 +309,18 @@ async function finalizeOrder(paymentMethod) {
     fetchProducts('waiter');
 
     setTimeout(() => { window.print(); }, 200);
+}
+
+function gerarFichaHtml(nome, preco, data, extraHtml) {
+    return `
+        <div class="ticket">
+            <h3>Conteiner Beer</h3>
+            <p>--- FICHA INDIVIDUAL ---</p>
+            <h2>${nome}</h2>
+            ${extraHtml}
+            <h1>R$ ${preco.toFixed(2)}</h1>
+            <p>CÓDIGO DE AUTENTICAÇÃO:</p>
+            <div class="ticket-id">${generateUniqueId()}</div>
+            <p>${data}</p>
+        </div>`;
 }

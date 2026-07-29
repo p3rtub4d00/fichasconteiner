@@ -41,11 +41,12 @@
             
             <div class="dashboard-grid">
                 <section class="card">
-                    <h3>Cadastrar Produto e Estoque</h3>
+                    <h3>Cadastrar Produto</h3>
                     <div class="form-group-3">
-                        <input type="text" id="prod-name" placeholder="Nome">
+                        <input type="text" id="prod-name" placeholder="Nome (Ex: Promo 3 Skol)">
                         <input type="number" id="prod-price" placeholder="Preço R$" step="0.01">
                         <input type="number" id="prod-stock" placeholder="Qtd Estoque" step="1">
+                        <input type="number" id="prod-tickets" placeholder="Qtd Fichas (Padrão: 1)" step="1" value="1">
                         <select id="prod-category"><option value="">Categoria</option></select>
                         <button onclick="addProduct()">Salvar</button>
                     </div>
@@ -89,6 +90,7 @@
             <input type="text" id="edit-prod-name" placeholder="Nome do Produto">
             <input type="number" id="edit-prod-price" placeholder="Preço R$" step="0.01">
             <input type="number" id="edit-prod-stock" placeholder="Quantidade em Estoque" step="1">
+            <input type="number" id="edit-prod-tickets" placeholder="Qtd Fichas (Fração)" step="1">
             <select id="edit-prod-category"></select>
             
             <div class="modal-actions" style="margin-top: 20px;">
