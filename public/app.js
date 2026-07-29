@@ -97,9 +97,28 @@ async function saveEditProduct() {
 
 async function deleteProduct(id) { if(confirm('Excluir produto?')) { await fetch(`${API_URL}/products/${id}`, { method: 'DELETE' }); loadAdminData(); } }
 
+// === NOVO SISTEMA DE HISTÓRICO COM CALENDÁRIO ===
 async function fetchHistory() {
-    const start = new Date(); start.setHours(0,0,0,0);
-    const end = new Date(); end.setHours(23,59,59,999);
+    const dateInput = document.getElementById('history-date');
+    let start = new Date();
+    let end = new Date();
+
+    if (dateInput.value) {
+        // Usa a data selecionada no input para definir início e fim do dia
+        const [year, month, day] = dateInput.value.split('-');
+        start = new Date(year, month - 1, day, 0, 0, 0);
+        end = new Date(year, month - 1, day, 23, 59, 59, 999);
+    } else {
+        // Se estiver vazio (ao carregar), usa hoje e preenche o input
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        
+        // Formata a data atual para o padrão YYYY-MM-DD do input type="date"
+        const tzOffset = start.getTimezoneOffset() * 60000;
+        const localISOTime = (new Date(start - tzOffset)).toISOString().slice(0, 10);
+        dateInput.value = localISOTime;
+    }
+
     const res = await fetch(`${API_URL}/orders?start=${start.toISOString()}&end=${end.toISOString()}`);
     const orders = await res.json();
     
@@ -108,23 +127,19 @@ async function fetchHistory() {
     
     orders.forEach(order => {
         totalRev += order.total;
-        const hora = new Date(order.date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+        const dataVenda = new Date(order.date);
+        const hora = dataVenda.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+        const dataFormatada = dataVenda.toLocaleDateString('pt-BR');
         const itemsStr = order.items ? order.items.map(i => `${i.quantity}x ${i.productName}`).join(', ') : 'Venda antiga';
         
         listHTML += `<li>
-            <div style="flex:1"><strong>${itemsStr}</strong> <br><small>${hora} - ${order.paymentMethod || 'Dinheiro'}</small></div>
+            <div style="flex:1"><strong>${itemsStr}</strong> <br><small>${dataFormatada} às ${hora} - ${order.paymentMethod || 'Dinheiro'}</small></div>
             <span style="font-weight:bold; color:var(--success);">R$ ${order.total.toFixed(2)}</span>
         </li>`;
     });
     
     document.getElementById('admin-history-list').innerHTML = listHTML;
     document.getElementById('total-revenue').innerText = `R$ ${totalRev.toFixed(2)}`;
-}
-async function clearRevenue() {
-    if(confirm('Zerar faturamento de HOJE?')) {
-        const start = new Date(); start.setHours(0,0,0,0); const end = new Date(); end.setHours(23,59,59,999);
-        await fetch(`${API_URL}/orders?start=${start.toISOString()}&end=${end.toISOString()}`, { method: 'DELETE' }); loadAdminData();
-    }
 }
 
 // ================= GARÇOM E CARRINHO =================
@@ -283,7 +298,6 @@ async function finalizeOrder(paymentMethod) {
     let printHTML = '';
     const dateStr = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
     
-    // A MÁGICA DE FRACIONAR FICHAS
     cart.forEach(item => {
         const tCount = item.ticketCount || 1; 
         

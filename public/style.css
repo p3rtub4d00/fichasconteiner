@@ -14,7 +14,7 @@ body { background-color: var(--bg-color); color: var(--text-main); min-height: 1
 
 .login-box { max-width: 400px; margin: 10vh auto; background: var(--card-bg); padding: 30px; border-radius: var(--radius); text-align: center; border: 1px solid var(--border); }
 .login-box h1 { color: var(--primary); margin-bottom: 30px; }
-input, select { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid var(--border); border-radius: 6px; background: #0b1120; color: var(--text-main); font-size: 16px;}
+input, select { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid var(--border); border-radius: 6px; background: #0b1120; color: var(--text-main); font-size: 16px; color-scheme: dark;}
 button { padding: 14px; background: var(--primary); color: #fff; border: none; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; }
 button:active { transform: scale(0.98); }
 .btn-danger { background: var(--danger); }

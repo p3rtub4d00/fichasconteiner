@@ -22,7 +22,7 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/bar-pdv', {
 const Category = mongoose.model('Category', new mongoose.Schema({ name: String }));
 const Product = mongoose.model('Product', new mongoose.Schema({ 
     name: String, price: Number, category: String, stock: { type: Number, default: 0 },
-    ticketCount: { type: Number, default: 1 } // NOVO: Quantidade de fichas por item
+    ticketCount: { type: Number, default: 1 }
 }));
 const Order = mongoose.model('Order', new mongoose.Schema({
     items: Array, total: Number, paymentMethod: String, waiter: String, date: { type: Date, default: Date.now }
@@ -73,7 +73,6 @@ app.post('/api/orders', async (req, res) => {
     const orderData = req.body;
     await new Order(orderData).save();
     
-    // Abate o estoque
     for (let item of orderData.items) {
         await Product.findByIdAndUpdate(item.id, { $inc: { stock: -item.quantity } });
     }
@@ -85,14 +84,6 @@ app.get('/api/orders', async (req, res) => {
     let query = {};
     if (start && end) query.date = { $gte: new Date(start), $lte: new Date(end) };
     res.json(await Order.find(query).sort({ date: -1 }));
-});
-
-app.delete('/api/orders', async (req, res) => {
-    const { start, end } = req.query;
-    let query = {};
-    if (start && end) query.date = { $gte: new Date(start), $lte: new Date(end) };
-    await Order.deleteMany(query);
-    res.json({ msg: 'Zerado' });
 });
 
 const PORT = process.env.PORT || 3000;

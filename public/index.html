@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- TELA DE LOGIN -->
     <div id="login-view" class="view active">
         <div class="login-box">
             <h1>Conteiner Beer</h1>
@@ -16,7 +15,6 @@
         </div>
     </div>
 
-    <!-- TELA ADMIN -->
     <div id="admin-view" class="view">
         <header>
             <h1>Painel Admin</h1>
@@ -25,9 +23,11 @@
         <main>
             <div class="dashboard-grid">
                 <section class="card">
-                    <h3>Faturamento (Hoje)</h3>
+                    <h3>Faturamento Diário</h3>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <input type="date" id="history-date" onchange="fetchHistory()" style="margin: 0; width: 100%; cursor: pointer;">
+                    </div>
                     <h2 id="total-revenue">R$ 0,00</h2>
-                    <button onclick="clearRevenue()" class="btn-warning">Zerar Caixa</button>
                 </section>
                 <section class="card">
                     <h3>Nova Categoria</h3>
@@ -60,7 +60,6 @@
         </main>
     </div>
 
-    <!-- TELA GARÇOM -->
     <div id="waiter-view" class="view">
         <header>
             <h1>Caixa Rápido</h1>
@@ -72,7 +71,6 @@
             <div id="waiter-product-grid" class="grid" style="padding-bottom: 80px;"></div>
         </main>
 
-        <!-- BOTÃO FLUTUANTE DO CARRINHO -->
         <div id="cart-floating-btn" onclick="openCartModal()">
             <div class="cart-info">
                 <span id="cart-count">0 itens</span>
@@ -100,7 +98,6 @@
         </div>
     </div>
 
-    <!-- MODAL DO CARRINHO (CHECKOUT) -->
     <div id="cart-modal" class="modal">
         <div class="modal-box cart-modal-box">
             <h2>Carrinho de Compras</h2>
@@ -117,7 +114,6 @@
         </div>
     </div>
 
-    <!-- MODAL DO PIX QR CODE -->
     <div id="pix-modal" class="modal">
         <div class="modal-box">
             <h2 style="color: #0ea5e9;">Pagamento PIX</h2>
@@ -130,7 +126,6 @@
         </div>
     </div>
 
-    <!-- ÁREA DE IMPRESSÃO -->
     <div id="print-area"></div>
 
     <script src="app.js"></script>
