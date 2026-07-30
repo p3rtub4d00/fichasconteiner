@@ -97,23 +97,20 @@ async function saveEditProduct() {
 
 async function deleteProduct(id) { if(confirm('Excluir produto?')) { await fetch(`${API_URL}/products/${id}`, { method: 'DELETE' }); loadAdminData(); } }
 
-// === NOVO SISTEMA DE HISTÓRICO COM CALENDÁRIO ===
+// === SISTEMA DE HISTÓRICO COM CALENDÁRIO ===
 async function fetchHistory() {
     const dateInput = document.getElementById('history-date');
     let start = new Date();
     let end = new Date();
 
     if (dateInput.value) {
-        // Usa a data selecionada no input para definir início e fim do dia
         const [year, month, day] = dateInput.value.split('-');
         start = new Date(year, month - 1, day, 0, 0, 0);
         end = new Date(year, month - 1, day, 23, 59, 59, 999);
     } else {
-        // Se estiver vazio (ao carregar), usa hoje e preenche o input
         start.setHours(0, 0, 0, 0);
         end.setHours(23, 59, 59, 999);
         
-        // Formata a data atual para o padrão YYYY-MM-DD do input type="date"
         const tzOffset = start.getTimezoneOffset() * 60000;
         const localISOTime = (new Date(start - tzOffset)).toISOString().slice(0, 10);
         dateInput.value = localISOTime;
@@ -315,14 +312,18 @@ async function finalizeOrder(paymentMethod) {
 
     document.getElementById('print-area').innerHTML = printHTML;
     
-    cart = [];
-    updateCartUI();
-    document.getElementById('pix-modal').classList.remove('active');
-    closeCartModal();
+    pathCartReset();
     
     fetchProducts('waiter');
 
     setTimeout(() => { window.print(); }, 200);
+}
+
+function pathCartReset() {
+    cart = [];
+    updateCartUI();
+    document.getElementById('pix-modal').classList.remove('active');
+    closeCartModal();
 }
 
 function gerarFichaHtml(nome, preco, data, extraHtml) {
