@@ -97,7 +97,7 @@ async function saveEditProduct() {
 
 async function deleteProduct(id) { if(confirm('Excluir produto?')) { await fetch(`${API_URL}/products/${id}`, { method: 'DELETE' }); loadAdminData(); } }
 
-// === SISTEMA DE HISTÓRICO COM CALENDÁRIO ===
+// === SISTEMA DE HISTÓRICO COM ITENS EM LISTA VERTICAL ===
 async function fetchHistory() {
     const dateInput = document.getElementById('history-date');
     let start = new Date();
@@ -127,11 +127,24 @@ async function fetchHistory() {
         const dataVenda = new Date(order.date);
         const hora = dataVenda.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
         const dataFormatada = dataVenda.toLocaleDateString('pt-BR');
-        const itemsStr = order.items ? order.items.map(i => `${i.quantity}x ${i.productName}`).join(', ') : 'Venda antiga';
         
-        listHTML += `<li>
-            <div style="flex:1"><strong>${itemsStr}</strong> <br><small>${dataFormatada} às ${hora} - ${order.paymentMethod || 'Dinheiro'}</small></div>
-            <span style="font-weight:bold; color:var(--success);">R$ ${order.total.toFixed(2)}</span>
+        let itemsHTML = '';
+        if (order.items && order.items.length > 0) {
+            itemsHTML = order.items.map(i => `<div style="margin-bottom: 2px;">• ${i.quantity}x ${i.productName}</div>`).join('');
+        } else {
+            itemsHTML = '<div>Venda antiga</div>';
+        }
+        
+        listHTML += `<li style="flex-direction: column; align-items: flex-start; gap: 8px;">
+            <div style="width: 100%; display: flex; justify-content: space-between; align-items: flex-start;">
+                <div style="display: flex; flex-direction: column; font-size: 14px; color: var(--text-main);">
+                    ${itemsHTML}
+                </div>
+                <span style="font-weight:bold; color:var(--success); font-size: 16px; white-space: nowrap; margin-left: 10px;">R$ ${order.total.toFixed(2)}</span>
+            </div>
+            <div style="width: 100%; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 6px;">
+                <small style="color: var(--text-muted);">${dataFormatada} às ${hora} - Pagamento: <strong>${order.paymentMethod || 'Dinheiro'}</strong></small>
+            </div>
         </li>`;
     });
     
