@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- TELA DE LOGIN -->
     <div id="login-view" class="view active">
         <div class="login-box">
             <h1>Conteiner Beer</h1>
@@ -15,51 +16,70 @@
         </div>
     </div>
 
+    <!-- TELA ADMIN (REESTRUTURADA PARA PC E CELULAR) -->
     <div id="admin-view" class="view">
-        <header>
-            <h1>Painel Admin</h1>
+        <header class="admin-header">
+            <h1>Painel Admin - Conteiner Beer</h1>
             <button onclick="logout()" class="btn-danger">Sair</button>
         </header>
-        <main>
-            <div class="dashboard-grid">
+        <main class="admin-container">
+            
+            <!-- COLUNA DA ESQUERDA: Métricas e Cadastros -->
+            <div class="admin-col-left">
+                <!-- Card de Faturamento -->
                 <section class="card">
                     <h3>Faturamento Diário</h3>
-                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                        <input type="date" id="history-date" onchange="fetchHistory()" style="margin: 0; width: 100%; cursor: pointer;">
+                    <div class="input-date-wrapper">
+                        <input type="date" id="history-date" onchange="fetchHistory()">
                     </div>
                     <h2 id="total-revenue">R$ 0,00</h2>
                 </section>
+
+                <!-- Card de Categorias -->
                 <section class="card">
-                    <h3>Nova Categoria</h3>
-                    <div class="form-group-2">
-                        <input type="text" id="cat-name" placeholder="Nome">
-                        <button onclick="addCategory()">Add</button>
+                    <h3>Gerenciar Categorias</h3>
+                    <div class="form-group-inline">
+                        <input type="text" id="cat-name" placeholder="Nome da Categoria">
+                        <button onclick="addCategory()">Adicionar</button>
                     </div>
                     <ul id="admin-category-list" class="list mini-list"></ul>
                 </section>
-            </div>
-            
-            <div class="dashboard-grid">
+
+                <!-- Card de Cadastrar Produto -->
                 <section class="card">
-                    <h3>Cadastrar Produto</h3>
-                    <div class="form-group-3">
+                    <h3>Cadastrar Produto / Combo</h3>
+                    <div class="form-group-stack">
                         <input type="text" id="prod-name" placeholder="Nome (Ex: Promo 3 Skol)">
-                        <input type="number" id="prod-price" placeholder="Preço R$" step="0.01">
-                        <input type="number" id="prod-stock" placeholder="Qtd Estoque" step="1">
-                        <input type="number" id="prod-tickets" placeholder="Qtd Fichas (Padrão: 1)" step="1" value="1">
-                        <select id="prod-category"><option value="">Categoria</option></select>
-                        <button onclick="addProduct()">Salvar</button>
+                        <div class="form-row-2">
+                            <input type="number" id="prod-price" placeholder="Preço R$" step="0.01">
+                            <input type="number" id="prod-stock" placeholder="Estoque" step="1">
+                        </div>
+                        <div class="form-row-2">
+                            <input type="number" id="prod-tickets" placeholder="Qtd Fichas (Ex: 3)" step="1" value="1">
+                            <select id="prod-category"><option value="">Categoria</option></select>
+                        </div>
+                        <button onclick="addProduct()" class="btn-success" style="width:100%; margin-top: 5px;">Salvar Novo Produto</button>
                     </div>
-                    <ul id="admin-product-list" class="list"></ul>
-                </section>
-                <section class="card">
-                    <h3>Últimas Vendas</h3>
-                    <ul id="admin-history-list" class="list"></ul>
                 </section>
             </div>
+
+            <!-- COLUNA DA DIREITA: Produtos Cadastrados e Histórico de Vendas -->
+            <div class="admin-col-right">
+                <section class="card">
+                    <h3>Produtos Cadastrados no Sistema</h3>
+                    <ul id="admin-product-list" class="list tall-list"></ul>
+                </section>
+
+                <section class="card">
+                    <h3>Histórico de Vendas do Dia</h3>
+                    <ul id="admin-history-list" class="list tall-list"></ul>
+                </section>
+            </div>
+
         </main>
     </div>
 
+    <!-- TELA GARÇOM (MANTIDA 100% IDÊNTICA PARA CELULAR) -->
     <div id="waiter-view" class="view">
         <header>
             <h1>Caixa Rápido</h1>
@@ -70,7 +90,6 @@
             <div class="search-container"><input type="text" id="search-input" placeholder="Buscar..." onkeyup="searchProducts()"></div>
             <div id="waiter-product-grid" class="grid" style="padding-bottom: 80px;"></div>
         </main>
-
         <div id="cart-floating-btn" onclick="openCartModal()">
             <div class="cart-info">
                 <span id="cart-count">0 itens</span>
@@ -98,6 +117,7 @@
         </div>
     </div>
 
+    <!-- MODAL DO CARRINHO -->
     <div id="cart-modal" class="modal">
         <div class="modal-box cart-modal-box">
             <h2>Carrinho de Compras</h2>
@@ -114,6 +134,7 @@
         </div>
     </div>
 
+    <!-- MODAL DO PIX -->
     <div id="pix-modal" class="modal">
         <div class="modal-box">
             <h2 style="color: #0ea5e9;">Pagamento PIX</h2>
@@ -127,7 +148,6 @@
     </div>
 
     <div id="print-area"></div>
-
     <script src="app.js"></script>
 </body>
 </html>
