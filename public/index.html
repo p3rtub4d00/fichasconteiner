@@ -16,7 +16,7 @@
         </div>
     </div>
 
-    <!-- TELA ADMIN (REESTRUTURADA PARA PC E CELULAR) -->
+    <!-- TELA ADMIN -->
     <div id="admin-view" class="view">
         <header class="admin-header">
             <h1>Painel Admin - Conteiner Beer</h1>
@@ -24,15 +24,16 @@
         </header>
         <main class="admin-container">
             
-            <!-- COLUNA DA ESQUERDA: Métricas e Cadastros -->
+            <!-- COLUNA DA ESQUERDA -->
             <div class="admin-col-left">
-                <!-- Card de Faturamento -->
+                <!-- Card de Faturamento e Impressão de Relatório -->
                 <section class="card">
                     <h3>Faturamento Diário</h3>
-                    <div class="input-date-wrapper">
+                    <div class="input-date-wrapper" style="margin-bottom: 10px;">
                         <input type="date" id="history-date" onchange="fetchHistory()">
                     </div>
                     <h2 id="total-revenue">R$ 0,00</h2>
+                    <button onclick="printDailyReport()" class="btn-success" style="width: 100%; margin-top: 15px; font-size: 14px; padding: 12px;">🖨️ Imprimir Fechamento do Dia</button>
                 </section>
 
                 <!-- Card de Categorias -->
@@ -63,7 +64,7 @@
                 </section>
             </div>
 
-            <!-- COLUNA DA DIREITA: Produtos Cadastrados e Histórico de Vendas -->
+            <!-- COLUNA DA DIREITA -->
             <div class="admin-col-right">
                 <section class="card">
                     <h3>Produtos Cadastrados no Sistema</h3>
@@ -79,7 +80,7 @@
         </main>
     </div>
 
-    <!-- TELA GARÇOM (MANTIDA 100% IDÊNTICA PARA CELULAR) -->
+    <!-- TELA GARÇOM -->
     <div id="waiter-view" class="view">
         <header>
             <h1>Caixa Rápido</h1>
