@@ -4,6 +4,7 @@ let allProducts = [];
 let allCategories = [];
 let cart = []; 
 let pixInterval = null; 
+let currentDayOrders = []; // Armazena os pedidos da data atual para impressão do relatório
 
 // ================= STARTUP E LOGIN =================
 window.onload = () => {
@@ -117,12 +118,12 @@ async function fetchHistory() {
     }
 
     const res = await fetch(`${API_URL}/orders?start=${start.toISOString()}&end=${end.toISOString()}`);
-    const orders = await res.json();
+    currentDayOrders = await res.json(); // Salva na variável global para impressão
     
     let totalRev = 0;
     let listHTML = '';
     
-    orders.forEach(order => {
+    currentDayOrders.forEach(order => {
         totalRev += order.total;
         const dataVenda = new Date(order.date);
         const hora = dataVenda.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
@@ -150,6 +151,56 @@ async function fetchHistory() {
     
     document.getElementById('admin-history-list').innerHTML = listHTML;
     document.getElementById('total-revenue').innerText = `R$ ${totalRev.toFixed(2)}`;
+}
+
+// === IMPRESSÃO DO RELATÓRIO DE FECHAMENTO ===
+function printDailyReport() {
+    if (!currentDayOrders || currentDayOrders.length === 0) {
+        return alert('Não há vendas registradas na data selecionada para imprimir!');
+    }
+
+    const dateInputVal = document.getElementById('history-date').value;
+    const [y, m, d] = dateInputVal.split('-');
+    const dateFormatted = `${d}/${m}/${y}`;
+
+    let totalRev = 0;
+    let reportHTML = `
+        <div class="ticket" style="text-align: left; font-family: monospace; font-size: 12px; width: 58mm; padding: 5px; color: black; background: white;">
+            <div style="text-align: center;">
+                <h3 style="font-size: 14px; margin-bottom: 2px;">Conteiner Beer</h3>
+                <p style="font-size: 11px; margin: 0;">--- FECHAMENTO DE CAIXA ---</p>
+                <p style="font-size: 11px; margin: 2px 0 8px 0;">Data: ${dateFormatted}</p>
+            </div>
+            <div style="border-bottom: 1px dashed #000; margin-bottom: 8px;"></div>
+    `;
+
+    currentDayOrders.forEach((order, index) => {
+        totalRev += order.total;
+        const hora = new Date(order.date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+        
+        reportHTML += `<div style="margin-bottom: 6px; font-size: 11px;">`;
+        reportHTML += `<strong>#${index + 1} (${hora}) - ${order.paymentMethod || 'Dinheiro'}</strong><br>`;
+        
+        if (order.items) {
+            order.items.forEach(i => {
+                reportHTML += `&nbsp;&nbsp;• ${i.quantity}x ${i.productName} (R$ ${(i.price * i.quantity).toFixed(2)})<br>`;
+            });
+        }
+        reportHTML += `<div style="text-align: right; font-weight: bold;">Subtotal: R$ ${order.total.toFixed(2)}</div>`;
+        reportHTML += `</div><div style="border-bottom: 1px dotted #666; margin: 4px 0;"></div>`;
+    });
+
+    reportHTML += `
+            <div style="text-align: center; margin-top: 12px;">
+                <h2 style="font-size: 16px; margin: 4px 0;">TOTAL: R$ ${totalRev.toFixed(2)}</h2>
+                <p style="font-size: 10px; margin: 4px 0;">--------------------------------</p>
+                <p style="font-size: 10px; margin: 0;">Fim do Relatório Diário</p>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('print-area').innerHTML = reportHTML;
+    setTimeout(() => { window.print(); }, 200);
 }
 
 // ================= GARÇOM E CARRINHO =================
