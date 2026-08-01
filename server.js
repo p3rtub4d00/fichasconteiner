@@ -18,11 +18,12 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/bar-pdv', {
     useNewUrlParser: true, useUnifiedTopology: true
 }).then(() => console.log('MongoDB Conectado')).catch(err => console.log(err));
 
-// Modelos
+// Modelos (Adicionado isWholesale)
 const Category = mongoose.model('Category', new mongoose.Schema({ name: String }));
 const Product = mongoose.model('Product', new mongoose.Schema({ 
     name: String, price: Number, category: String, stock: { type: Number, default: 0 },
-    ticketCount: { type: Number, default: 1 }
+    ticketCount: { type: Number, default: 1 },
+    isWholesale: { type: Boolean, default: false } 
 }));
 const Order = mongoose.model('Order', new mongoose.Schema({
     items: Array, total: Number, paymentMethod: String, waiter: String, date: { type: Date, default: Date.now }
