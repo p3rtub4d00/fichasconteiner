@@ -4,7 +4,11 @@ let allProducts = [];
 let allCategories = [];
 let cart = []; 
 let pixInterval = null; 
-let currentDayOrders = []; // Armazena os pedidos da data atual para impressão do relatório
+let currentDayOrders = []; 
+
+// Variáveis de Filtro do Garçom
+let salesMode = 'retail'; // 'retail' (Consumo Local) ou 'wholesale' (Atacado)
+let currentCategory = 'Todas';
 
 // ================= STARTUP E LOGIN =================
 window.onload = () => {
@@ -48,16 +52,20 @@ async function addProduct() {
     const stock = parseInt(document.getElementById('prod-stock').value) || 0;
     const ticketCount = parseInt(document.getElementById('prod-tickets').value) || 1; 
     const category = document.getElementById('prod-category').value;
+    const isWholesale = document.getElementById('prod-wholesale').checked;
     
     if (!name || !price || !category) return alert('Preencha os campos obrigatórios!');
-    await fetch(`${API_URL}/products`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, price, category, stock, ticketCount }) });
+    await fetch(`${API_URL}/products`, { 
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ name, price, category, stock, ticketCount, isWholesale }) 
+    });
     
     document.getElementById('prod-name').value = ''; document.getElementById('prod-price').value = ''; 
     document.getElementById('prod-stock').value = ''; document.getElementById('prod-tickets').value = '1'; 
+    document.getElementById('prod-wholesale').checked = false;
     loadAdminData();
 }
 
-// === FUNÇÕES DE EDIÇÃO DE PRODUTO ===
 function openEditProdModal(id) {
     const p = allProducts.find(x => x._id === id);
     if (!p) return;
@@ -67,6 +75,7 @@ function openEditProdModal(id) {
     document.getElementById('edit-prod-price').value = p.price;
     document.getElementById('edit-prod-stock').value = p.stock;
     document.getElementById('edit-prod-tickets').value = p.ticketCount || 1;
+    document.getElementById('edit-prod-wholesale').checked = p.isWholesale || false;
     
     document.getElementById('edit-prod-category').innerHTML = `<option value="">Categoria</option>` + 
         allCategories.map(c => `<option value="${c.name}" ${p.category === c.name ? 'selected' : ''}>${c.name}</option>`).join('');
@@ -83,13 +92,14 @@ async function saveEditProduct() {
     const stock = parseInt(document.getElementById('edit-prod-stock').value) || 0;
     const ticketCount = parseInt(document.getElementById('edit-prod-tickets').value) || 1;
     const category = document.getElementById('edit-prod-category').value;
+    const isWholesale = document.getElementById('edit-prod-wholesale').checked;
     
     if (!name || !price || !category) return alert('Preencha nome, preço e categoria!');
     
     await fetch(`${API_URL}/products/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, price, stock, category, ticketCount })
+        body: JSON.stringify({ name, price, stock, category, ticketCount, isWholesale })
     });
     
     closeEditProdModal();
@@ -98,7 +108,7 @@ async function saveEditProduct() {
 
 async function deleteProduct(id) { if(confirm('Excluir produto?')) { await fetch(`${API_URL}/products/${id}`, { method: 'DELETE' }); loadAdminData(); } }
 
-// === SISTEMA DE HISTÓRICO COM ITENS EM LISTA VERTICAL ===
+// === HISTÓRICO COM ITENS VERTICAIS E CALENDÁRIO ===
 async function fetchHistory() {
     const dateInput = document.getElementById('history-date');
     let start = new Date();
@@ -111,14 +121,13 @@ async function fetchHistory() {
     } else {
         start.setHours(0, 0, 0, 0);
         end.setHours(23, 59, 59, 999);
-        
         const tzOffset = start.getTimezoneOffset() * 60000;
         const localISOTime = (new Date(start - tzOffset)).toISOString().slice(0, 10);
         dateInput.value = localISOTime;
     }
 
     const res = await fetch(`${API_URL}/orders?start=${start.toISOString()}&end=${end.toISOString()}`);
-    currentDayOrders = await res.json(); // Salva na variável global para impressão
+    currentDayOrders = await res.json();
     
     let totalRev = 0;
     let listHTML = '';
@@ -165,36 +174,36 @@ function printDailyReport() {
 
     let totalRev = 0;
     let reportHTML = `
-        <div class="ticket" style="text-align: left; font-family: monospace; font-size: 12px; width: 58mm; padding: 5px; color: black; background: white;">
+        <div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white;">
             <div style="text-align: center;">
-                <h3 style="font-size: 14px; margin-bottom: 2px;">Conteiner Beer</h3>
-                <p style="font-size: 11px; margin: 0;">--- FECHAMENTO DE CAIXA ---</p>
-                <p style="font-size: 11px; margin: 2px 0 8px 0;">Data: ${dateFormatted}</p>
+                <h3 style="font-size: 13px; margin-bottom: 2px;">Conteiner Beer</h3>
+                <p style="font-size: 10px; margin: 0;">--- FECHAMENTO DE CAIXA ---</p>
+                <p style="font-size: 10px; margin: 2px 0 6px 0;">Data: ${dateFormatted}</p>
             </div>
-            <div style="border-bottom: 1px dashed #000; margin-bottom: 8px;"></div>
+            <div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div>
     `;
 
     currentDayOrders.forEach((order, index) => {
         totalRev += order.total;
         const hora = new Date(order.date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
         
-        reportHTML += `<div style="margin-bottom: 6px; font-size: 11px;">`;
+        reportHTML += `<div style="margin-bottom: 5px;">`;
         reportHTML += `<strong>#${index + 1} (${hora}) - ${order.paymentMethod || 'Dinheiro'}</strong><br>`;
         
         if (order.items) {
             order.items.forEach(i => {
-                reportHTML += `&nbsp;&nbsp;• ${i.quantity}x ${i.productName} (R$ ${(i.price * i.quantity).toFixed(2)})<br>`;
+                reportHTML += `&nbsp;• ${i.quantity}x ${i.productName} (R$ ${(i.price * i.quantity).toFixed(2)})<br>`;
             });
         }
         reportHTML += `<div style="text-align: right; font-weight: bold;">Subtotal: R$ ${order.total.toFixed(2)}</div>`;
-        reportHTML += `</div><div style="border-bottom: 1px dotted #666; margin: 4px 0;"></div>`;
+        reportHTML += `</div><div style="border-bottom: 1px dotted #666; margin: 3px 0;"></div>`;
     });
 
     reportHTML += `
-            <div style="text-align: center; margin-top: 12px;">
-                <h2 style="font-size: 16px; margin: 4px 0;">TOTAL: R$ ${totalRev.toFixed(2)}</h2>
-                <p style="font-size: 10px; margin: 4px 0;">--------------------------------</p>
-                <p style="font-size: 10px; margin: 0;">Fim do Relatório Diário</p>
+            <div style="text-align: center; margin-top: 10px;">
+                <h2 style="font-size: 15px; margin: 4px 0;">TOTAL: R$ ${totalRev.toFixed(2)}</h2>
+                <p style="font-size: 9px; margin: 4px 0;">--------------------------------</p>
+                <p style="font-size: 9px; margin: 0;">Fim do Relatório Diário</p>
             </div>
         </div>
     `;
@@ -209,6 +218,14 @@ async function loadWaiterData() {
     allCategories = await resCat.json();
     document.getElementById('category-tabs').innerHTML = `<button class="tab active" onclick="filterProducts('Todas', this)">Todas</button>` + 
         allCategories.map(c => `<button class="tab" onclick="filterProducts('${c.name}', this)">${c.name}</button>`).join('');
+    
+    // Reseta filtros ao carregar
+    salesMode = 'retail';
+    currentCategory = 'Todas';
+    document.getElementById('mode-retail').classList.add('active');
+    document.getElementById('mode-wholesale').classList.remove('active');
+    document.getElementById('search-input').value = '';
+    
     await fetchProducts('waiter');
     updateCartUI();
 }
@@ -217,20 +234,70 @@ async function fetchProducts(role) {
     const res = await fetch(`${API_URL}/products`);
     allProducts = await res.json();
     if (role === 'admin') {
-        document.getElementById('admin-product-list').innerHTML = allProducts.map(p => `
+        document.getElementById('admin-product-list').innerHTML = allProducts.map(p => {
+            const badge = p.isWholesale ? '<span class="badge-atacado">ATACADO</span>' : '';
+            return `
             <li>
-                <div><strong>${p.name}</strong> <small>Estoque: ${p.stock} | Fichas: ${p.ticketCount || 1}</small></div>
+                <div><strong>${p.name}</strong> ${badge}<br><small>Estoque: ${p.stock} | Fichas: ${p.ticketCount || 1}</small></div>
                 <div style="display: flex; gap: 5px; align-items: center;">
                     <span style="margin-right: 10px;">R$ ${p.price.toFixed(2)}</span>
                     <button style="background: #3b82f6; width: auto; padding: 6px 12px; margin: 0; font-size: 14px;" onclick="openEditProdModal('${p._id}')">✏️ Editar</button>
                     <button class="btn-danger" style="width: auto; padding: 6px 12px; margin: 0;" onclick="deleteProduct('${p._id}')">X</button>
                 </div>
             </li>
-        `).join('');
-    } else { renderWaiterGrid(allProducts); }
+            `;
+        }).join('');
+    } else { 
+        applyWaiterFilters(); // Filtra a grade baseado na chave atacado/varejo
+    }
+}
+
+// === NOVO SISTEMA DE FILTRO (ATACADO vs VAREJO) ===
+function setSalesMode(mode) {
+    salesMode = mode;
+    document.getElementById('mode-retail').classList.toggle('active', mode === 'retail');
+    document.getElementById('mode-wholesale').classList.toggle('active', mode === 'wholesale');
+    applyWaiterFilters();
+}
+
+function filterProducts(cat, btn) { 
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active')); 
+    btn.classList.add('active'); 
+    currentCategory = cat;
+    applyWaiterFilters();
+}
+
+function searchProducts() { 
+    applyWaiterFilters(); 
+}
+
+function applyWaiterFilters() {
+    const termo = document.getElementById('search-input').value.toLowerCase();
+    
+    const filteredProducts = allProducts.filter(p => {
+        const isAtacado = p.isWholesale || false;
+        
+        // Verifica se o produto bate com a chave selecionada (Varejo ou Atacado)
+        const matchMode = (salesMode === 'wholesale') ? isAtacado : !isAtacado;
+        
+        // Verifica categoria
+        const matchCategory = (currentCategory === 'Todas') || (p.category === currentCategory);
+        
+        // Verifica pesquisa
+        const matchSearch = p.name.toLowerCase().includes(termo);
+        
+        return matchMode && matchCategory && matchSearch;
+    });
+    
+    renderWaiterGrid(filteredProducts);
 }
 
 function renderWaiterGrid(products) {
+    if (products.length === 0) {
+        document.getElementById('waiter-product-grid').innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">Nenhum produto encontrado nesta categoria.</p>`;
+        return;
+    }
+    
     document.getElementById('waiter-product-grid').innerHTML = products.map(p => {
         const isOutOfStock = p.stock <= 0;
         return `<div class="grid-item ${isOutOfStock ? 'out-of-stock' : ''}" onclick="${isOutOfStock ? '' : `addToCart('${p._id}')`}">
@@ -239,8 +306,6 @@ function renderWaiterGrid(products) {
         </div>`;
     }).join('');
 }
-function filterProducts(cat, btn) { document.querySelectorAll('.tab').forEach(b => b.classList.remove('active')); btn.classList.add('active'); renderWaiterGrid(cat === 'Todas' ? allProducts : allProducts.filter(p => p.category === cat)); }
-function searchProducts() { const termo = document.getElementById('search-input').value.toLowerCase(); renderWaiterGrid(allProducts.filter(p => p.name.toLowerCase().includes(termo))); }
 
 // LÓGICA DO CARRINHO
 function addToCart(productId) {
@@ -378,7 +443,7 @@ async function finalizeOrder(paymentMethod) {
     
     pathCartReset();
     
-    fetchProducts('waiter');
+    fetchProducts('waiter'); // Recarrega os estoques mantendo o filtro ativo
 
     setTimeout(() => { window.print(); }, 200);
 }
