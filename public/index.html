@@ -24,9 +24,7 @@
         </header>
         <main class="admin-container">
             
-            <!-- COLUNA DA ESQUERDA -->
             <div class="admin-col-left">
-                <!-- Card de Faturamento e Impressão de Relatório -->
                 <section class="card">
                     <h3>Faturamento Diário</h3>
                     <div class="input-date-wrapper" style="margin-bottom: 10px;">
@@ -36,7 +34,6 @@
                     <button onclick="printDailyReport()" class="btn-success" style="width: 100%; margin-top: 15px; font-size: 14px; padding: 12px;">🖨️ Imprimir Fechamento do Dia</button>
                 </section>
 
-                <!-- Card de Categorias -->
                 <section class="card">
                     <h3>Gerenciar Categorias</h3>
                     <div class="form-group-inline">
@@ -46,7 +43,6 @@
                     <ul id="admin-category-list" class="list mini-list"></ul>
                 </section>
 
-                <!-- Card de Cadastrar Produto -->
                 <section class="card">
                     <h3>Cadastrar Produto / Combo</h3>
                     <div class="form-group-stack">
@@ -59,12 +55,15 @@
                             <input type="number" id="prod-tickets" placeholder="Qtd Fichas (Ex: 3)" step="1" value="1">
                             <select id="prod-category"><option value="">Categoria</option></select>
                         </div>
+                        <!-- NOVO CHECKBOX DE ATACADO -->
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="prod-wholesale"> Este produto é preço de ATACADO?
+                        </label>
                         <button onclick="addProduct()" class="btn-success" style="width:100%; margin-top: 5px;">Salvar Novo Produto</button>
                     </div>
                 </section>
             </div>
 
-            <!-- COLUNA DA DIREITA -->
             <div class="admin-col-right">
                 <section class="card">
                     <h3>Produtos Cadastrados no Sistema</h3>
@@ -76,7 +75,6 @@
                     <ul id="admin-history-list" class="list tall-list"></ul>
                 </section>
             </div>
-
         </main>
     </div>
 
@@ -87,6 +85,12 @@
             <button onclick="logout()" class="btn-danger">Sair</button>
         </header>
         <main>
+            <!-- SELETOR VAREJO/ATACADO -->
+            <div class="mode-toggle">
+                <button id="mode-retail" class="mode-btn active" onclick="setSalesMode('retail')">🍺 Consumo Local</button>
+                <button id="mode-wholesale" class="mode-btn" onclick="setSalesMode('wholesale')">📦 Atacado</button>
+            </div>
+
             <div id="category-tabs" class="tabs-container"></div>
             <div class="search-container"><input type="text" id="search-input" placeholder="Buscar..." onkeyup="searchProducts()"></div>
             <div id="waiter-product-grid" class="grid" style="padding-bottom: 80px;"></div>
@@ -110,6 +114,10 @@
             <input type="number" id="edit-prod-stock" placeholder="Quantidade em Estoque" step="1">
             <input type="number" id="edit-prod-tickets" placeholder="Qtd Fichas (Fração)" step="1">
             <select id="edit-prod-category"></select>
+            <!-- NOVO CHECKBOX NO EDITAR -->
+            <label class="checkbox-label" style="margin-top: 15px;">
+                <input type="checkbox" id="edit-prod-wholesale"> Preço de ATACADO
+            </label>
             
             <div class="modal-actions" style="margin-top: 20px;">
                 <button class="btn-danger" onclick="closeEditProdModal()">Cancelar</button>
@@ -118,7 +126,7 @@
         </div>
     </div>
 
-    <!-- MODAL DO CARRINHO -->
+    <!-- MODAL DO CARRINHO (MANTIDO INTACTO) -->
     <div id="cart-modal" class="modal">
         <div class="modal-box cart-modal-box">
             <h2>Carrinho de Compras</h2>
