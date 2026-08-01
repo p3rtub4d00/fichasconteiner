@@ -252,7 +252,6 @@ async function fetchProducts(role) {
     }
 }
 
-// === NOVO SISTEMA DE FILTRO (ATACADO vs VAREJO) ===
 function setSalesMode(mode) {
     salesMode = mode;
     document.getElementById('mode-retail').classList.toggle('active', mode === 'retail');
@@ -267,23 +266,15 @@ function filterProducts(cat, btn) {
     applyWaiterFilters();
 }
 
-function searchProducts() { 
-    applyWaiterFilters(); 
-}
+function searchProducts() { applyWaiterFilters(); }
 
 function applyWaiterFilters() {
     const termo = document.getElementById('search-input').value.toLowerCase();
     
     const filteredProducts = allProducts.filter(p => {
         const isAtacado = p.isWholesale || false;
-        
-        // Verifica se o produto bate com a chave selecionada (Varejo ou Atacado)
         const matchMode = (salesMode === 'wholesale') ? isAtacado : !isAtacado;
-        
-        // Verifica categoria
         const matchCategory = (currentCategory === 'Todas') || (p.category === currentCategory);
-        
-        // Verifica pesquisa
         const matchSearch = p.name.toLowerCase().includes(termo);
         
         return matchMode && matchCategory && matchSearch;
@@ -307,7 +298,7 @@ function renderWaiterGrid(products) {
     }).join('');
 }
 
-// LÓGICA DO CARRINHO
+// === LÓGICA DO CARRINHO (AGORA ARMAZENA SE É ATACADO) ===
 function addToCart(productId) {
     const product = allProducts.find(p => p._id === productId);
     const existing = cart.find(item => item.id === productId);
@@ -317,8 +308,18 @@ function addToCart(productId) {
         return alert(`Estoque insuficiente! Restam apenas ${product.stock} unidades de ${product.name}.`);
     }
 
-    if (existing) { existing.quantity++; } 
-    else { cart.push({ id: product._id, productName: product.name, price: product.price, quantity: 1, ticketCount: product.ticketCount || 1 }); }
+    if (existing) { 
+        existing.quantity++; 
+    } else { 
+        cart.push({ 
+            id: product._id, 
+            productName: product.name, 
+            price: product.price, 
+            quantity: 1, 
+            ticketCount: product.ticketCount || 1,
+            isWholesale: product.isWholesale || false // Salva no carrinho se é atacado
+        }); 
+    }
     updateCartUI();
 }
 
@@ -410,7 +411,7 @@ function cancelPix() {
     openCartModal(); 
 }
 
-// ================= FINALIZAR E IMPRIMIR =================
+// ================= FINALIZAR E IMPRIMIR (FICHAS vs CUPOM ATACADO) =================
 function generateUniqueId() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
 
 async function finalizeOrder(paymentMethod) {
@@ -424,7 +425,12 @@ async function finalizeOrder(paymentMethod) {
     let printHTML = '';
     const dateStr = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
     
-    cart.forEach(item => {
+    // Separa os itens que são de varejo (fichas) dos que são de atacado (cupom unificado)
+    const retailItems = cart.filter(item => !item.isWholesale);
+    const wholesaleItems = cart.filter(item => item.isWholesale);
+
+    // 1. IMPRIME FICHAS INDIVIDUAIS (Apenas itens de Varejo)
+    retailItems.forEach(item => {
         const tCount = item.ticketCount || 1; 
         
         for (let i = 0; i < item.quantity; i++) { 
@@ -432,17 +438,64 @@ async function finalizeOrder(paymentMethod) {
                 printHTML += gerarFichaHtml(item.productName, item.price, dateStr, "");
             } else {
                 for (let f = 1; f <= tCount; f++) {
-                    const tarja = `<div style="background-color: black; color: white; margin: 10px 0; padding: 5px; border-radius: 4px; font-size: 16px;">FRACÃO ${f}/${tCount}</div>`;
+                    const tarja = `<div style="background-color: black; color: white; margin: 10px 0; padding: 5px; border-radius: 4px; font-size: 16px;">FRAÇÃO ${f}/${tCount}</div>`;
                     printHTML += gerarFichaHtml(item.productName, item.price, dateStr, tarja);
                 }
             }
         }
     });
 
+    // 2. IMPRIME CUPOM NÃO FISCAL UNIFICADO (Apenas itens de Atacado)
+    if (wholesaleItems.length > 0) {
+        let cupomTotal = wholesaleItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        
+        printHTML += `
+        <div class="ticket" style="text-align: left; font-family: monospace; font-size: 12px; width: 58mm; padding: 5px; color: black; background: white; margin-bottom: 0;">
+            <div style="text-align: center;">
+                <h3 style="font-size: 14px; margin-bottom: 2px;">Conteiner Beer</h3>
+                <p style="font-size: 11px; margin: 0;">--- CUPOM NÃO FISCAL ---</p>
+                <p style="font-size: 11px; margin: 2px 0 6px 0; font-weight: bold;">ATACADO</p>
+            </div>
+            <div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div>
+            
+            <table style="width: 100%; font-size: 11px; margin-bottom: 5px; border-collapse: collapse;">
+                <tr>
+                    <th style="text-align:left; border-bottom: 1px solid #000; padding-bottom: 2px;">Qtd</th>
+                    <th style="text-align:left; border-bottom: 1px solid #000; padding-bottom: 2px;">Produto</th>
+                    <th style="text-align:right; border-bottom: 1px solid #000; padding-bottom: 2px;">Total</th>
+                </tr>`;
+        
+        wholesaleItems.forEach(item => {
+            printHTML += `
+                <tr>
+                    <td style="padding-top: 4px;">${item.quantity}x</td>
+                    <td style="padding-top: 4px;">${item.productName}</td>
+                    <td style="text-align:right; padding-top: 4px;">R$ ${(item.price * item.quantity).toFixed(2)}</td>
+                </tr>`;
+        });
+
+        printHTML += `
+            </table>
+            
+            <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
+            <div style="text-align: right; font-size: 14px; font-weight: bold; margin-bottom: 6px;">
+                TOTAL: R$ ${cupomTotal.toFixed(2)}
+            </div>
+            <div style="font-size: 11px;">
+                <p style="margin: 2px 0;">Pagamento: <strong>${paymentMethod}</strong></p>
+                <p style="margin: 2px 0;">Data: ${dateStr}</p>
+                <p style="margin: 2px 0;">ID: ${generateUniqueId()}</p>
+            </div>
+            <div style="text-align: center; margin-top: 10px; font-size: 10px;">
+                <p>Obrigado pela preferência!</p>
+                <p>Volte sempre!</p>
+            </div>
+        </div>`;
+    }
+
     document.getElementById('print-area').innerHTML = printHTML;
     
     pathCartReset();
-    
     fetchProducts('waiter'); // Recarrega os estoques mantendo o filtro ativo
 
     setTimeout(() => { window.print(); }, 200);
