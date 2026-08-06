@@ -34,6 +34,24 @@ function login() {
 }
 function logout() { localStorage.removeItem('userRole'); switchView('login-view'); }
 
+// ================= UTILIDADES VISUAIS (TOAST) =================
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast-msg';
+    toast.innerText = message;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.remove(); }, 2000);
+}
+
+// Lida com o clique no botão flutuante (Carrinho vs. Comanda)
+function handleFloatingClick() {
+    if (activeTableId) {
+        openTableManageModal(activeTableId);
+    } else {
+        openCartModal();
+    }
+}
+
 // ================= ADMIN =================
 async function loadAdminData() { await fetchCategories(); await fetchProducts('admin'); await fetchHistory(); await fetchTablesAdmin(); }
 
@@ -184,7 +202,13 @@ function switchWaiterTab(tab) {
     if (tab === 'caixa') {
         document.getElementById('caixa-section').style.display = 'block';
         document.getElementById('mesas-section').style.display = 'none';
-        document.getElementById('cart-floating-btn').style.display = cart.length > 0 && !activeTableId ? 'flex' : 'none';
+        
+        // Se estivermos numa mesa, o botão fica azul. Se não, mostra carrinho (se não vazio)
+        if (activeTableId) {
+            document.getElementById('cart-floating-btn').style.display = 'flex';
+        } else {
+            document.getElementById('cart-floating-btn').style.display = cart.length > 0 ? 'flex' : 'none';
+        }
     } else {
         document.getElementById('caixa-section').style.display = 'none';
         document.getElementById('mesas-section').style.display = 'block';
@@ -228,7 +252,11 @@ function openTableManageModal(tableId) {
     
     document.getElementById('tm-items').innerHTML = html || '<p style="color:var(--text-muted); font-style:italic;">Mesa vazia no momento.</p>';
     document.getElementById('tm-subtotal').innerText = `Subtotal: R$ ${subtotal.toFixed(2)}`;
-    document.getElementById('tm-pay-btn').style.display = table.items.length > 0 ? 'block' : 'none';
+    
+    // Controla quais botões aparecem dependendo se a mesa tá vazia
+    const hasItems = table.items.length > 0;
+    document.getElementById('tm-pay-btn').style.display = hasItems ? 'block' : 'none';
+    document.getElementById('tm-print-btn').style.display = hasItems ? 'block' : 'none';
     
     document.getElementById('table-manage-modal').classList.add('active');
 }
@@ -241,19 +269,93 @@ async function removeTableItem(tableId, productId) {
     openTableManageModal(tableId);
 }
 
+// Inicia modo de adição rápida na mesa
 function startTableMode() {
     activeTableId = currentTableData._id;
     closeTableManageModal();
     switchWaiterTab('caixa');
     document.getElementById('active-table-banner').style.display = 'flex';
     document.getElementById('banner-table-text').innerText = `Comanda: ${currentTableData.name}`;
-    document.getElementById('cart-floating-btn').style.display = 'none'; 
+    
+    // Altera o botão flutuante para Azul (Modo Mesa)
+    const floatingBtn = document.getElementById('cart-floating-btn');
+    floatingBtn.classList.add('table-mode');
+    floatingBtn.classList.add('active');
+    floatingBtn.style.display = 'flex';
+    document.getElementById('cart-action-text').innerText = 'Ver Comanda 📋';
+    updateActiveTableFloatingBtn();
 }
 
 function closeTableMode() {
     activeTableId = null;
     document.getElementById('active-table-banner').style.display = 'none';
+    
+    // Restaura o botão flutuante para Verde (Modo Carrinho)
+    const floatingBtn = document.getElementById('cart-floating-btn');
+    floatingBtn.classList.remove('table-mode');
+    document.getElementById('cart-action-text').innerText = 'Ver Carrinho 🛒';
+    updateCartUI(); // Esconde se o carrinho de balcão estiver vazio
+    
     switchWaiterTab('mesas');
+}
+
+function updateActiveTableFloatingBtn() {
+    if (!activeTableId || !currentTableData) return;
+    const totalItems = currentTableData.items.reduce((sum, item) => sum + item.quantity, 0);
+    const totalPrice = currentTableData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    document.getElementById('cart-count').innerText = `${totalItems} itens na mesa`;
+    document.getElementById('cart-total').innerText = `R$ ${totalPrice.toFixed(2)}`;
+}
+
+// ================= IMPRIMIR PARCIAL DA MESA (NÃO FISCAL) =================
+function printPartialTable() {
+    if (!currentTableData || currentTableData.items.length === 0) return alert('Mesa vazia!');
+    
+    let subtotal = currentTableData.items.reduce((s, i) => s + (i.price * i.quantity), 0);
+    const dateStr = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+    
+    let printHTML = `
+        <div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white; margin-bottom: 0;">
+            <div style="text-align: center;">
+                <h3 style="font-size: 14px; margin-bottom: 2px;">Conteiner Beer</h3>
+                <p style="font-size: 11px; margin: 0; font-weight:bold;">-- CONFERÊNCIA DE MESA --</p>
+                <p style="font-size: 9px; margin: 2px 0 6px 0;">NÃO É DOCUMENTO FISCAL</p>
+                <h2 style="font-size: 18px; margin: 4px 0;">${currentTableData.name}</h2>
+            </div>
+            <div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div>
+            
+            <table style="width: 100%; font-size: 11px; margin-bottom: 5px; border-collapse: collapse;">
+                <tr>
+                    <th style="text-align:left; border-bottom: 1px solid #000; padding-bottom: 2px;">Qtd</th>
+                    <th style="text-align:left; border-bottom: 1px solid #000; padding-bottom: 2px;">Produto</th>
+                    <th style="text-align:right; border-bottom: 1px solid #000; padding-bottom: 2px;">Total</th>
+                </tr>`;
+    
+    currentTableData.items.forEach(item => {
+        printHTML += `
+                <tr>
+                    <td style="padding-top: 4px; vertical-align: top;">${item.quantity}x</td>
+                    <td style="padding-top: 4px; vertical-align: top;">${item.productName}</td>
+                    <td style="text-align:right; padding-top: 4px; vertical-align: top;">R$ ${(item.price * item.quantity).toFixed(2)}</td>
+                </tr>`;
+    });
+
+    printHTML += `
+            </table>
+            <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
+            
+            <div style="text-align: right; font-size: 14px; font-weight: bold;">Subtotal: R$ ${subtotal.toFixed(2)}</div>
+            <div style="text-align: right; font-size: 11px; color: #333; margin-top: 4px;">Serviço (10% opcional): R$ ${(subtotal*0.1).toFixed(2)}</div>
+            
+            <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
+            <div style="font-size: 10px; text-align:center;">
+                <p style="margin: 2px 0;">Impresso em: ${dateStr}</p>
+            </div>
+        </div>`;
+    
+    document.getElementById('print-area').innerHTML = printHTML;
+    setTimeout(() => { window.print(); }, 200);
 }
 
 // ================= FECHAMENTO DE MESA (SPLIT + 10%) =================
@@ -337,7 +439,6 @@ async function finalizeTableOrder(data) {
         body: JSON.stringify({ paymentMethod: data.method, total: data.total, items: data.items, waiter: 'Garçom' })
     });
     
-    // Imprime Recibo da Mesa
     const dateStr = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
     let printHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 12px; width: 58mm; padding: 5px; color: black; background: white; margin-bottom: 0;">
         <div style="text-align: center;"><h3 style="font-size: 14px; margin-bottom: 2px;">Conteiner Beer</h3><p style="font-size: 11px; margin: 0;">--- FECHAMENTO DE MESA ---</p><h2 style="font-size: 16px; margin: 4px 0;">${data.tableName}</h2></div>
@@ -360,7 +461,7 @@ async function finalizeTableOrder(data) {
     setTimeout(() => { window.print(); }, 200);
 }
 
-// ================= FILTROS E BUSCA (CAIXA RÁPIDO) =================
+// ================= FILTROS E BUSCA =================
 function setSalesMode(mode) {
     salesMode = mode;
     document.getElementById('mode-retail').classList.toggle('active', mode === 'retail');
@@ -398,12 +499,14 @@ async function addToCart(productId) {
     const product = allProducts.find(p => p._id === productId);
     
     if (activeTableId) {
-        await fetch(`${API_URL}/tables/${activeTableId}/add`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ product }) });
-        const btn = document.getElementById('banner-table-text');
-        const oldText = btn.innerText;
-        btn.innerText = '✅ Produto adicionado!';
-        btn.style.color = '#fff';
-        setTimeout(() => { btn.innerText = oldText; }, 1000);
+        // Feedback visual imediato na tela (Toast)
+        showToast(`✅ ${product.name} adicionado à ${currentTableData.name}!`);
+        
+        const res = await fetch(`${API_URL}/tables/${activeTableId}/add`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ product }) });
+        currentTableData = await res.json();
+        
+        fetchTablesWaiter(); // Atualiza painel de mesas por trás
+        updateActiveTableFloatingBtn(); // Atualiza barra azul
         return;
     }
 
@@ -425,10 +528,11 @@ function changeCartQtd(productId, amount) {
 }
 
 function updateCartUI() {
+    if (activeTableId) return; // Se estiver no modo mesa, não interfere com o UI do carrinho
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
     const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const floatingBtn = document.getElementById('cart-floating-btn');
-    if (totalItems > 0 && !activeTableId) {
+    if (totalItems > 0) {
         floatingBtn.classList.add('active'); floatingBtn.style.display = 'flex';
         document.getElementById('cart-count').innerText = `${totalItems} itens`;
         document.getElementById('cart-total').innerText = `R$ ${totalPrice.toFixed(2)}`;
