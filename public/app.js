@@ -127,7 +127,7 @@ async function openClientDebtModal(clientName) {
         document.getElementById('btn-settle-debt').setAttribute('onclick', `settleClientDebt('${clientName}')`);
 
         let html = '';
-        orders.forEach((order, idx) => {
+        orders.forEach((order) => {
             totalDebt += order.total;
             const dataHora = new Date(order.date).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
             let itemsText = order.items ? order.items.map(i => `${i.quantity}x ${i.productName}`).join(', ') : 'Itens diversos';
@@ -143,7 +143,6 @@ async function openClientDebtModal(clientName) {
         document.getElementById('debt-items-list').innerHTML = html;
         document.getElementById('debt-total-amount').innerText = `R$ ${totalDebt.toFixed(2)}`;
     } catch (e) {
-        console.error(e);
         alert('Erro ao carregar o extrato do cliente.');
     }
 }
@@ -162,7 +161,6 @@ async function settleClientDebt(clientName) {
         loadAdminData();
     } catch (e) {
         alert('Erro ao processar a quitação.');
-        console.error(e);
     }
 }
 

@@ -25,7 +25,7 @@ const Product = mongoose.model('Product', new mongoose.Schema({
 const Order = mongoose.model('Order', new mongoose.Schema({
     items: Array, total: Number, paymentMethod: String, waiter: String, 
     date: { type: Date, default: Date.now },
-    settled: { type: Boolean, default: false } // Campo para controlar se o fiado foi pago/quitado
+    settled: { type: Boolean, default: false }
 }));
 const Table = mongoose.model('Table', new mongoose.Schema({
     name: String, status: { type: String, default: 'livre' }, items: { type: Array, default: [] }
@@ -52,11 +52,9 @@ app.delete('/api/customers/:id', async (req, res) => {
     catch (error) { res.status(500).json({ error: 'Erro ao excluir cliente' }); }
 });
 
-// Ver extrato de fiado pendente de um cliente específico
 app.get('/api/customers/debt/:name', async (req, res) => {
     try {
         const clientName = req.params.name;
-        // Busca pedidos pendentes onde o método de pagamento contenha o nome do cliente e settled seja falso
         const orders = await Order.find({ 
             paymentMethod: { $regex: `Fiado - ${clientName}`, $options: 'i' },
             settled: { $ne: true }
@@ -67,7 +65,6 @@ app.get('/api/customers/debt/:name', async (req, res) => {
     }
 });
 
-// Quitar (zerar) o fiado do cliente
 app.post('/api/customers/debt/:name/settle', async (req, res) => {
     try {
         const clientName = req.params.name;
@@ -84,16 +81,18 @@ app.post('/api/customers/debt/:name/settle', async (req, res) => {
     }
 });
 
-// ================= DEMAIS ROTAS =================
+// ================= ROTAS DE CATEGORIAS =================
 app.get('/api/categories', async (req, res) => res.json(await Category.find()));
 app.post('/api/categories', async (req, res) => res.json(await new Category(req.body).save()));
 app.delete('/api/categories/:id', async (req, res) => { await Category.findByIdAndDelete(req.params.id); res.json({ msg: 'OK' }); });
 
+// ================= ROTAS DE PRODUTOS =================
 app.get('/api/products', async (req, res) => res.json(await Product.find()));
 app.post('/api/products', async (req, res) => res.json(await new Product(req.body).save()));
 app.put('/api/products/:id', async (req, res) => { await Product.findByIdAndUpdate(req.params.id, req.body); res.json({ msg: 'Produto atualizado' }); });
 app.delete('/api/products/:id', async (req, res) => { await Product.findByIdAndDelete(req.params.id); res.json({ msg: 'OK' }); });
 
+// ================= ROTAS DE MESAS =================
 app.get('/api/tables', async (req, res) => res.json(await Table.find().sort({ name: 1 })));
 app.post('/api/tables', async (req, res) => res.json(await new Table(req.body).save()));
 app.delete('/api/tables/:id', async (req, res) => { await Table.findByIdAndDelete(req.params.id); res.json({ msg: 'OK' }); });
@@ -127,7 +126,6 @@ app.put('/api/tables/:id/remove', async (req, res) => {
 app.post('/api/tables/:id/checkout', async (req, res) => {
     try {
         const table = await Table.findById(req.params.id);
-        const isFiado = req.body.paymentMethod && req.body.paymentMethod.startsWith('Fiado -');
         await new Order({ 
             items: req.body.items, 
             total: req.body.total, 
@@ -145,16 +143,7 @@ app.post('/api/tables/:id/checkout', async (req, res) => {
     } catch (error) { res.status(500).json({ error: 'Erro' }); }
 });
 
-app.post('/api/pix', async (req, res) => {
-    try {
-        const result = await payment.create({
-            body: { transaction_amount: req.body.total, description: 'Venda Conteiner Beer', payment_method_id: 'pix', payer: { email: 'cliente@conteinerbeer.com' } }
-        });
-        res.json({ id: result.id, qr_code_base64: result.point_of_interaction.transaction_data.qr_code_base64 });
-    } catch (error) { res.status(500).json({ error: 'Erro ao gerar PIX' }); }
-});
-app.get('/api/pix/:id', async (req, res) => { try { res.json({ status: (await payment.get({ id: req.params.id })).status }); } catch (error) { res.status(500).json({ error: 'Erro' }); } });
-
+// ================= ROTAS DE PEDIDOS E HISTÓRICO =================
 app.post('/api/orders', async (req, res) => {
     try {
         await new Order({ ...req.body, settled: false }).save();
@@ -175,6 +164,17 @@ app.get('/api/orders', async (req, res) => {
         res.json(await Order.find(query).sort({ date: -1 }));
     } catch (error) { res.status(500).json({ error: 'Erro' }); }
 });
+
+// ================= ROTAS PIX =================
+app.post('/api/pix', async (req, res) => {
+    try {
+        const result = await payment.create({
+            body: { transaction_amount: req.body.total, description: 'Venda Conteiner Beer', payment_method_id: 'pix', payer: { email: 'cliente@conteinerbeer.com' } }
+        });
+        res.json({ id: result.id, qr_code_base64: result.point_of_interaction.transaction_data.qr_code_base64 });
+    } catch (error) { res.status(500).json({ error: 'Erro ao gerar PIX' }); }
+});
+app.get('/api/pix/:id', async (req, res) => { try { res.json({ status: (await payment.get({ id: req.params.id })).status }); } catch (error) { res.status(500).json({ error: 'Erro' }); } });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
