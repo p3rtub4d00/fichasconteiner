@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- TELA DE LOGIN -->
     <div id="login-view" class="view active">
         <div class="login-box">
             <h1>Conteiner Beer</h1>
@@ -16,24 +15,28 @@
         </div>
     </div>
 
-    <!-- TELA ADMIN -->
+    <!-- ADMIN -->
     <div id="admin-view" class="view">
         <header class="admin-header">
             <h1>Painel Admin - Conteiner Beer</h1>
             <button onclick="logout()" class="btn-danger">Sair</button>
         </header>
         <main class="admin-container">
-            
             <div class="admin-col-left">
                 <section class="card">
                     <h3>Faturamento Diário</h3>
-                    <div class="input-date-wrapper" style="margin-bottom: 10px;">
-                        <input type="date" id="history-date" onchange="fetchHistory()">
-                    </div>
+                    <div class="input-date-wrapper" style="margin-bottom: 10px;"><input type="date" id="history-date" onchange="fetchHistory()"></div>
                     <h2 id="total-revenue">R$ 0,00</h2>
-                    <button onclick="printDailyReport()" class="btn-success" style="width: 100%; margin-top: 15px; font-size: 14px; padding: 12px;">🖨️ Imprimir Fechamento do Dia</button>
+                    <button onclick="printDailyReport()" class="btn-success" style="width: 100%; margin-top: 15px; font-size: 14px; padding: 12px;">🖨️ Imprimir Fechamento</button>
                 </section>
-
+                <section class="card">
+                    <h3>Gerenciar Mesas/Comandas</h3>
+                    <div class="form-group-inline">
+                        <input type="text" id="table-name" placeholder="Ex: Mesa 01">
+                        <button onclick="addTable()">Adicionar Mesa</button>
+                    </div>
+                    <ul id="admin-table-list" class="list mini-list"></ul>
+                </section>
                 <section class="card">
                     <h3>Gerenciar Categorias</h3>
                     <div class="form-group-inline">
@@ -42,7 +45,6 @@
                     </div>
                     <ul id="admin-category-list" class="list mini-list"></ul>
                 </section>
-
                 <section class="card">
                     <h3>Cadastrar Produto / Combo</h3>
                     <div class="form-group-stack">
@@ -55,106 +57,108 @@
                             <input type="number" id="prod-tickets" placeholder="Qtd Fichas (Ex: 3)" step="1" value="1">
                             <select id="prod-category"><option value="">Categoria</option></select>
                         </div>
-                        <!-- NOVO CHECKBOX DE ATACADO -->
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="prod-wholesale"> Este produto é preço de ATACADO?
-                        </label>
+                        <label class="checkbox-label"><input type="checkbox" id="prod-wholesale"> Este produto é preço de ATACADO?</label>
                         <button onclick="addProduct()" class="btn-success" style="width:100%; margin-top: 5px;">Salvar Novo Produto</button>
                     </div>
                 </section>
             </div>
-
             <div class="admin-col-right">
-                <section class="card">
-                    <h3>Produtos Cadastrados no Sistema</h3>
-                    <ul id="admin-product-list" class="list tall-list"></ul>
-                </section>
-
-                <section class="card">
-                    <h3>Histórico de Vendas do Dia</h3>
-                    <ul id="admin-history-list" class="list tall-list"></ul>
-                </section>
+                <section class="card"><h3>Produtos Cadastrados no Sistema</h3><ul id="admin-product-list" class="list tall-list"></ul></section>
+                <section class="card"><h3>Histórico de Vendas do Dia</h3><ul id="admin-history-list" class="list tall-list"></ul></section>
             </div>
         </main>
     </div>
 
-    <!-- TELA GARÇOM -->
+    <!-- GARÇOM -->
     <div id="waiter-view" class="view">
-        <header>
-            <h1>Caixa Rápido</h1>
-            <button onclick="logout()" class="btn-danger">Sair</button>
+        <header style="flex-direction: column; align-items: stretch;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h1>Atendimento</h1><button onclick="logout()" class="btn-danger" style="padding: 8px 15px;">Sair</button>
+            </div>
+            <div class="waiter-nav">
+                <button id="nav-caixa" class="nav-btn active" onclick="switchWaiterTab('caixa')">🛒 Caixa Rápido</button>
+                <button id="nav-mesas" class="nav-btn" onclick="switchWaiterTab('mesas')">🍽️ Mesas</button>
+            </div>
         </header>
+
         <main>
-            <!-- SELETOR VAREJO/ATACADO -->
-            <div class="mode-toggle">
-                <button id="mode-retail" class="mode-btn active" onclick="setSalesMode('retail')">🍺 Consumo Local</button>
-                <button id="mode-wholesale" class="mode-btn" onclick="setSalesMode('wholesale')">📦 Atacado</button>
+            <div id="active-table-banner" style="display: none; background: #0ea5e9; color: white; padding: 12px 15px; border-radius: 8px; margin-bottom: 15px; align-items: center; justify-content: space-between;">
+                <span id="banner-table-text" style="font-weight: bold; font-size: 15px;"></span>
+                <button onclick="closeTableMode()" style="background: white; color: #0ea5e9; padding: 6px 12px; font-size: 13px; font-weight:bold;">Concluir ✔️</button>
             </div>
 
-            <div id="category-tabs" class="tabs-container"></div>
-            <div class="search-container"><input type="text" id="search-input" placeholder="Buscar..." onkeyup="searchProducts()"></div>
-            <div id="waiter-product-grid" class="grid" style="padding-bottom: 80px;"></div>
-        </main>
-        <div id="cart-floating-btn" onclick="openCartModal()">
-            <div class="cart-info">
-                <span id="cart-count">0 itens</span>
-                <strong id="cart-total">R$ 0,00</strong>
+            <div id="caixa-section">
+                <div class="mode-toggle">
+                    <button id="mode-retail" class="mode-btn active" onclick="setSalesMode('retail')">🍺 Consumo Local</button>
+                    <button id="mode-wholesale" class="mode-btn" onclick="setSalesMode('wholesale')">📦 Atacado</button>
+                </div>
+                <div id="category-tabs" class="tabs-container"></div>
+                <div class="search-container"><input type="text" id="search-input" placeholder="Buscar..." onkeyup="searchProducts()"></div>
+                <div id="waiter-product-grid" class="grid" style="padding-bottom: 80px;"></div>
             </div>
+
+            <div id="mesas-section" style="display: none;"><div id="waiter-tables-grid" class="grid"></div></div>
+        </main>
+        
+        <div id="cart-floating-btn" onclick="openCartModal()">
+            <div class="cart-info"><span id="cart-count">0 itens</span><strong id="cart-total">R$ 0,00</strong></div>
             <span>Ver Carrinho 🛒</span>
         </div>
     </div>
 
-    <!-- MODAL DE EDITAR PRODUTO -->
-    <div id="edit-prod-modal" class="modal">
+    <!-- MODAL MESA (ITENS ATUAIS) -->
+    <div id="table-manage-modal" class="modal">
         <div class="modal-box">
-            <h2>Editar Produto</h2>
-            <input type="hidden" id="edit-prod-id">
-            <input type="text" id="edit-prod-name" placeholder="Nome do Produto">
-            <input type="number" id="edit-prod-price" placeholder="Preço R$" step="0.01">
-            <input type="number" id="edit-prod-stock" placeholder="Quantidade em Estoque" step="1">
-            <input type="number" id="edit-prod-tickets" placeholder="Qtd Fichas (Fração)" step="1">
-            <select id="edit-prod-category"></select>
-            <!-- NOVO CHECKBOX NO EDITAR -->
-            <label class="checkbox-label" style="margin-top: 15px;">
-                <input type="checkbox" id="edit-prod-wholesale"> Preço de ATACADO
-            </label>
-            
-            <div class="modal-actions" style="margin-top: 20px;">
-                <button class="btn-danger" onclick="closeEditProdModal()">Cancelar</button>
-                <button class="btn-success" onclick="saveEditProduct()">Salvar Alterações</button>
+            <h2 id="tm-title" style="color: var(--primary);">Mesa 01</h2>
+            <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin: 15px 0;">
+                <ul id="tm-items" class="list" style="max-height: 200px; text-align: left; margin: 0; border: none;"></ul>
+                <h3 style="text-align: right; color: var(--success); margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px;" id="tm-subtotal">Subtotal: R$ 0,00</h3>
+            </div>
+            <div class="modal-actions" style="flex-direction: column; gap: 10px;">
+                <button class="btn-success" onclick="startTableMode()">➕ Adicionar Produtos na Comanda</button>
+                <button class="btn-pay" id="tm-pay-btn" onclick="openTableCheckout()">💳 Fechar Conta</button>
+                <button class="btn-danger" onclick="closeTableManageModal()">Voltar</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL DO CARRINHO (MANTIDO INTACTO) -->
-    <div id="cart-modal" class="modal">
-        <div class="modal-box cart-modal-box">
-            <h2>Carrinho de Compras</h2>
-            <ul id="cart-items-list" class="list" style="margin: 20px 0; max-height: 250px;"></ul>
-            <div class="modal-total">Total: <strong id="checkout-total">R$ 0,00</strong></div>
-            
-            <h3>Forma de Pagamento</h3>
+    <!-- MODAL FECHAMENTO MESA (SPLIT + 10%) -->
+    <div id="table-checkout-modal" class="modal">
+        <div class="modal-box">
+            <h2 style="margin-bottom: 5px;">Fechamento de Conta</h2>
+            <p id="tc-title" style="color: var(--primary); font-weight: bold; margin-bottom: 15px;"></p>
+            <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; text-align: left; margin-bottom: 15px;">
+                <label class="checkbox-label" style="margin: 0 0 15px 0;"><input type="checkbox" id="tc-tax" onchange="updateTableTotal()" checked> Adicionar 10% (Serviço)</label>
+                <div style="margin-bottom: 10px; background: var(--bg-color); padding: 10px; border-radius: 6px; border: 1px solid var(--border);">
+                    <label style="font-size: 13px; color: var(--text-muted); display: block;">Dividir conta em quantas pessoas?</label>
+                    <input type="number" id="tc-split" value="1" min="1" step="1" oninput="updateTableTotal()" style="margin-top: 5px; font-size: 18px; text-align: center; font-weight: bold;">
+                </div>
+                <div style="margin-top: 15px; border-top: 1px solid var(--border); padding-top: 10px;">
+                    <p style="font-size: 14px; display: flex; justify-content: space-between;">Subtotal: <strong id="tc-subtotal-text">R$ 0,00</strong></p>
+                    <p style="font-size: 14px; color: #f43f5e; display: flex; justify-content: space-between;" id="tc-tax-text">Serviço (10%): <span>R$ 0,00</span></p>
+                    <h2 style="color: var(--success); margin-top: 10px; text-align: center; font-size: 24px;" id="tc-total">Total: R$ 0,00</h2>
+                    <div id="tc-per-person-container" style="display: none; background: #3b82f6; color: white; padding: 10px; border-radius: 6px; text-align: center; margin-top: 10px;">
+                        <span style="font-size: 12px; display: block;">Valor por pessoa:</span>
+                        <strong style="font-size: 20px;" id="tc-per-person">R$ 0,00</strong>
+                    </div>
+                </div>
+            </div>
+            <h3 style="font-size: 15px; margin-bottom: 10px;">Forma de Pagamento</h3>
             <div class="payment-methods">
-                <button class="btn-pay" onclick="processCheckout('Dinheiro')">💵 Dinheiro</button>
-                <button class="btn-pay" onclick="processCheckout('Cartao')">💳 Cartão</button>
-                <button class="btn-pay pix-btn" onclick="processCheckout('Pix')">💠 PIX</button>
+                <button class="btn-pay" onclick="processTableCheckout('Dinheiro')">💵 Dinheiro</button>
+                <button class="btn-pay" onclick="processTableCheckout('Cartao')">💳 Cartão</button>
+                <button class="btn-pay pix-btn" onclick="processTableCheckout('Pix')">💠 PIX</button>
             </div>
-            <button class="btn-danger" style="margin-top: 15px;" onclick="closeCartModal()">Cancelar</button>
+            <button class="btn-danger" style="margin-top: 15px; width: 100%;" onclick="closeTableCheckoutModal()">Cancelar</button>
         </div>
     </div>
 
-    <!-- MODAL DO PIX -->
-    <div id="pix-modal" class="modal">
-        <div class="modal-box">
-            <h2 style="color: #0ea5e9;">Pagamento PIX</h2>
-            <p>Escaneie o QR Code abaixo:</p>
-            <div id="pix-qr-container" style="background: white; padding: 15px; border-radius: 10px; margin: 20px auto; width: fit-content; min-height: 200px;">
-                <p style="color: black;">Gerando PIX...</p>
-            </div>
-            <p id="pix-status-text" style="color: #f59e0b; font-weight: bold; margin-bottom: 15px;">Aguardando Pagamento... ⏳</p>
-            <button class="btn-danger" onclick="cancelPix()">Cancelar PIX</button>
-        </div>
-    </div>
+    <!-- MODAIS ORIGINAIS (EDITAR, CARRINHO, PIX) -->
+    <div id="edit-prod-modal" class="modal"><div class="modal-box"><h2>Editar Produto</h2><input type="hidden" id="edit-prod-id"><input type="text" id="edit-prod-name" placeholder="Nome"><input type="number" id="edit-prod-price" placeholder="Preço" step="0.01"><input type="number" id="edit-prod-stock" placeholder="Estoque" step="1"><input type="number" id="edit-prod-tickets" placeholder="Fichas" step="1"><select id="edit-prod-category"></select><label class="checkbox-label" style="margin-top: 15px;"><input type="checkbox" id="edit-prod-wholesale"> Preço de ATACADO</label><div class="modal-actions" style="margin-top: 20px;"><button class="btn-danger" onclick="closeEditProdModal()">Cancelar</button><button class="btn-success" onclick="saveEditProduct()">Salvar</button></div></div></div>
+    
+    <div id="cart-modal" class="modal"><div class="modal-box cart-modal-box"><h2>Carrinho (Caixa)</h2><ul id="cart-items-list" class="list" style="margin: 20px 0; max-height: 250px;"></ul><div class="modal-total">Total: <strong id="checkout-total">R$ 0,00</strong></div><h3>Forma de Pagamento</h3><div class="payment-methods"><button class="btn-pay" onclick="processCheckout('Dinheiro')">💵 Dinheiro</button><button class="btn-pay" onclick="processCheckout('Cartao')">💳 Cartão</button><button class="btn-pay pix-btn" onclick="processCheckout('Pix')">💠 PIX</button></div><button class="btn-danger" style="margin-top: 15px;" onclick="closeCartModal()">Cancelar</button></div></div>
+
+    <div id="pix-modal" class="modal"><div class="modal-box"><h2 style="color: #0ea5e9;">Pagamento PIX</h2><div id="pix-qr-container" style="background: white; padding: 15px; border-radius: 10px; margin: 20px auto; width: fit-content; min-height: 200px;"><p style="color: black;">Gerando PIX...</p></div><p id="pix-status-text" style="color: #f59e0b; font-weight: bold; margin-bottom: 15px;">Aguardando... ⏳</p><button class="btn-danger" onclick="cancelPix()">Cancelar</button></div></div>
 
     <div id="print-area"></div>
     <script src="app.js"></script>

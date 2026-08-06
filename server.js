@@ -9,82 +9,90 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static('public'));
 
-// Configuração Mercado Pago
 const mpClient = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN || 'TEST-TOKEN' });
 const payment = new Payment(mpClient);
 
-// Conexão MongoDB
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/bar-pdv', {
     useNewUrlParser: true, useUnifiedTopology: true
 }).then(() => console.log('MongoDB Conectado')).catch(err => console.log(err));
 
-// Modelos (Adicionado isWholesale)
 const Category = mongoose.model('Category', new mongoose.Schema({ name: String }));
 const Product = mongoose.model('Product', new mongoose.Schema({ 
     name: String, price: Number, category: String, stock: { type: Number, default: 0 },
-    ticketCount: { type: Number, default: 1 },
-    isWholesale: { type: Boolean, default: false } 
+    ticketCount: { type: Number, default: 1 }, isWholesale: { type: Boolean, default: false } 
 }));
 const Order = mongoose.model('Order', new mongoose.Schema({
     items: Array, total: Number, paymentMethod: String, waiter: String, date: { type: Date, default: Date.now }
 }));
+const Table = mongoose.model('Table', new mongoose.Schema({
+    name: String, status: { type: String, default: 'livre' }, items: { type: Array, default: [] }
+}));
 
-// --- Rotas de Categorias ---
 app.get('/api/categories', async (req, res) => res.json(await Category.find()));
 app.post('/api/categories', async (req, res) => res.json(await new Category(req.body).save()));
 app.delete('/api/categories/:id', async (req, res) => { await Category.findByIdAndDelete(req.params.id); res.json({ msg: 'OK' }); });
 
-// --- Rotas de Produtos ---
 app.get('/api/products', async (req, res) => res.json(await Product.find()));
 app.post('/api/products', async (req, res) => res.json(await new Product(req.body).save()));
-app.put('/api/products/:id', async (req, res) => {
-    await Product.findByIdAndUpdate(req.params.id, req.body);
-    res.json({ msg: 'Produto atualizado' });
-});
+app.put('/api/products/:id', async (req, res) => { await Product.findByIdAndUpdate(req.params.id, req.body); res.json({ msg: 'Produto atualizado' }); });
 app.delete('/api/products/:id', async (req, res) => { await Product.findByIdAndDelete(req.params.id); res.json({ msg: 'OK' }); });
 
-// --- Integração Mercado Pago ---
+// Rotas de Mesas / Comandas
+app.get('/api/tables', async (req, res) => res.json(await Table.find().sort({ name: 1 })));
+app.post('/api/tables', async (req, res) => res.json(await new Table(req.body).save()));
+app.delete('/api/tables/:id', async (req, res) => { await Table.findByIdAndDelete(req.params.id); res.json({ msg: 'OK' }); });
+
+app.put('/api/tables/:id/add', async (req, res) => {
+    const table = await Table.findById(req.params.id);
+    const { product } = req.body;
+    const existingItem = table.items.find(i => i.id === product._id);
+    if (existingItem) existingItem.quantity += 1;
+    else table.items.push({ id: product._id, productName: product.name, price: product.price, quantity: 1, ticketCount: product.ticketCount, isWholesale: product.isWholesale });
+    table.status = 'ocupada';
+    table.markModified('items');
+    await table.save();
+    res.json(table);
+});
+
+app.put('/api/tables/:id/remove', async (req, res) => {
+    const table = await Table.findById(req.params.id);
+    const itemIndex = table.items.findIndex(i => i.id === req.body.productId);
+    if (itemIndex > -1) {
+        table.items[itemIndex].quantity -= 1;
+        if (table.items[itemIndex].quantity <= 0) table.items.splice(itemIndex, 1);
+    }
+    if (table.items.length === 0) table.status = 'livre';
+    table.markModified('items');
+    await table.save();
+    res.json(table);
+});
+
+app.post('/api/tables/:id/checkout', async (req, res) => {
+    const table = await Table.findById(req.params.id);
+    await new Order({ items: req.body.items, total: req.body.total, paymentMethod: req.body.paymentMethod, waiter: req.body.waiter || 'Garçom' }).save();
+    for (let item of req.body.items) await Product.findByIdAndUpdate(item.id, { $inc: { stock: -item.quantity } });
+    table.items = []; table.status = 'livre'; await table.save();
+    res.json({ msg: 'Mesa fechada' });
+});
+
 app.post('/api/pix', async (req, res) => {
     try {
         const result = await payment.create({
-            body: {
-                transaction_amount: req.body.total,
-                description: 'Venda Conteiner Beer',
-                payment_method_id: 'pix',
-                payer: { email: 'cliente@conteinerbeer.com' }
-            }
+            body: { transaction_amount: req.body.total, description: 'Venda Conteiner Beer', payment_method_id: 'pix', payer: { email: 'cliente@conteinerbeer.com' } }
         });
-        res.json({
-            id: result.id,
-            qr_code: result.point_of_interaction.transaction_data.qr_code,
-            qr_code_base64: result.point_of_interaction.transaction_data.qr_code_base64
-        });
+        res.json({ id: result.id, qr_code_base64: result.point_of_interaction.transaction_data.qr_code_base64 });
     } catch (error) { res.status(500).json({ error: 'Erro ao gerar PIX' }); }
 });
+app.get('/api/pix/:id', async (req, res) => { try { res.json({ status: (await payment.get({ id: req.params.id })).status }); } catch (error) { res.status(500).json({ error: 'Erro' }); } });
 
-app.get('/api/pix/:id', async (req, res) => {
-    try {
-        const payInfo = await payment.get({ id: req.params.id });
-        res.json({ status: payInfo.status });
-    } catch (error) { res.status(500).json({ error: 'Erro ao checar status' }); }
-});
-
-// --- Rotas de Vendas e Baixa de Estoque ---
 app.post('/api/orders', async (req, res) => {
-    const orderData = req.body;
-    await new Order(orderData).save();
-    
-    for (let item of orderData.items) {
-        await Product.findByIdAndUpdate(item.id, { $inc: { stock: -item.quantity } });
-    }
+    await new Order(req.body).save();
+    for (let item of req.body.items) await Product.findByIdAndUpdate(item.id, { $inc: { stock: -item.quantity } });
     res.json({ msg: 'Pedido salvo' });
 });
-
 app.get('/api/orders', async (req, res) => {
     const { start, end } = req.query;
-    let query = {};
-    if (start && end) query.date = { $gte: new Date(start), $lte: new Date(end) };
-    res.json(await Order.find(query).sort({ date: -1 }));
+    res.json(await Order.find(start && end ? { date: { $gte: new Date(start), $lte: new Date(end) } } : {}).sort({ date: -1 }));
 });
 
 const PORT = process.env.PORT || 3000;

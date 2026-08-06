@@ -33,19 +33,20 @@ button:active { transform: scale(0.98); }
 .form-group-inline button { white-space: nowrap; }
 .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-/* CHECKBOX ATACADO */
 .checkbox-label { display: flex; align-items: center; gap: 10px; margin-top: 10px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; font-size: 14px; color: var(--text-main); }
 .checkbox-label input { width: auto; margin: 0; transform: scale(1.3); cursor: pointer; }
 
-/* LISTAS */
 .list { list-style: none; max-height: 250px; overflow-y: auto; padding-right: 4px; }
 .list.tall-list { max-height: 380px; }
 .list li { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(255,255,255,0.03); margin-bottom: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
 .list li button { padding: 6px 10px; font-size: 13px; width: auto; margin: 0; }
 .badge-atacado { background: #3b82f6; color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 8px; vertical-align: middle; }
 
-/* GARÇOM E SELETOR ATACADO */
-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--border); margin-bottom: 15px; }
+/* NAVEGAÇÃO E GRIDS (GARÇOM) */
+.waiter-nav { display: flex; gap: 10px; width: 100%; }
+.nav-btn { flex: 1; background: var(--bg-color); border: 2px solid var(--border); color: var(--text-muted); font-size: 14px; padding: 12px; border-radius: 8px; }
+.nav-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
 .mode-toggle { display: flex; gap: 10px; margin-bottom: 15px; }
 .mode-btn { flex: 1; background: var(--bg-color); border: 2px solid var(--border); color: var(--text-muted); font-size: 15px; padding: 12px; border-radius: 8px; }
 .mode-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
@@ -62,7 +63,16 @@ header { display: flex; justify-content: space-between; align-items: center; pad
 .grid-item.out-of-stock::after { content: 'ESGOTADO'; position: absolute; color: var(--danger); font-weight: bold; font-size: 12px; bottom: 5px; left: 0; width: 100%; }
 .grid-item small { color: var(--text-muted); font-size: 11px; margin-top: 5px; }
 
-/* CARRINHO */
+/* MESAS GRID */
+.table-item { background: var(--card-bg); border: 2px solid var(--border); padding: 25px 10px; text-align: center; border-radius: var(--radius); cursor: pointer; display: flex; flex-direction: column; justify-content: center; gap: 8px;}
+.table-item strong { font-size: 18px; }
+.table-item small { font-size: 12px; font-weight: bold; padding: 4px 8px; border-radius: 15px; width: fit-content; margin: 0 auto; }
+.table-item.livre { border-color: var(--success); }
+.table-item.livre small { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+.table-item.ocupada { border-color: var(--danger); }
+.table-item.ocupada small { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+
+/* MODAIS E IMPRESSÃO */
 #cart-floating-btn { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--success); padding: 15px 20px; display: none; justify-content: space-between; align-items: center; box-shadow: 0 -4px 10px rgba(0,0,0,0.3); cursor: pointer; z-index: 99; }
 #cart-floating-btn.active { display: flex; animation: slideUp 0.3s; }
 .cart-info { display: flex; flex-direction: column; }
@@ -70,7 +80,6 @@ header { display: flex; justify-content: space-between; align-items: center; pad
 .cart-info strong { font-size: 20px; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-/* MODAIS */
 .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; padding: 15px; }
 .modal.active { display: flex; }
 .modal-box { background: var(--card-bg); padding: 25px; border-radius: var(--radius); width: 100%; max-width: 400px; text-align: center; border: 1px solid var(--border); }
@@ -86,11 +95,10 @@ header { display: flex; justify-content: space-between; align-items: center; pad
 .cart-item-controls { display: flex; align-items: center; gap: 10px; }
 .cart-item-controls button { padding: 4px 10px; font-size: 16px; width: auto; background: #334155; }
 
-/* IMPRESSÃO */
 #print-area { display: none; }
 @media print {
     @page { margin: 0; }
-    .view, .modal, #cart-floating-btn { display: none !important; }
+    .view, .modal, #cart-floating-btn, .waiter-nav { display: none !important; }
     body { background: white; margin: 0; padding: 0; }
     #print-area { display: block !important; position: absolute; left: 0; top: 0; width: 58mm; margin: 0; background: white; color: black; font-family: monospace; font-weight: bold; }
     .ticket { padding: 5px 0 15px 0; text-align: center; border-bottom: 2px dashed #000; page-break-after: always; margin-bottom: 0; }
