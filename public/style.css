@@ -1,13 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* VARIÁVEIS BASE (MODO ESCURO) */
 :root {
     --bg-color: #0f172a; --card-bg: #1e293b; --primary: #f59e0b; --primary-hover: #d97706;
     --text-main: #f8fafc; --text-muted: #94a3b8; --danger: #ef4444; --success: #10b981;
     --border: #334155; --radius: 10px; --input-bg: #0b1120; --list-bg: rgba(255,255,255,0.03);
 }
 
-/* VARIÁVEIS MODO CLARO */
 body.light-mode {
     --bg-color: #f8fafc; --card-bg: #ffffff; --text-main: #0f172a; --text-muted: #475569;
     --border: #cbd5e1; --input-bg: #ffffff; --list-bg: #f1f5f9;
@@ -72,7 +70,6 @@ button:active { transform: scale(0.98); }
 .grid-item span { font-size: 16px; color: var(--success); font-weight: bold; }
 .grid-item small { color: var(--text-muted); font-size: 11px; margin-top: 5px; }
 
-/* ALERTA DE ESTOQUE E ESGOTADO */
 .grid-item.out-of-stock { opacity: 0.4; pointer-events: none; }
 .grid-item.out-of-stock::after { content: 'ESGOTADO'; position: absolute; color: var(--danger); font-weight: bold; font-size: 12px; bottom: 5px; left: 0; width: 100%; }
 .grid-item.low-stock { border: 2px solid #eab308; }

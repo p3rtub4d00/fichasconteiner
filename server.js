@@ -9,11 +9,9 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static('public'));
 
-// Configuração Mercado Pago
 const mpClient = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN || 'TEST-TOKEN' });
 const payment = new Payment(mpClient);
 
-// Conexão MongoDB
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/bar-pdv', {
     useNewUrlParser: true, useUnifiedTopology: true
 }).then(() => console.log('MongoDB Conectado')).catch(err => console.log(err));
@@ -30,74 +28,117 @@ const Order = mongoose.model('Order', new mongoose.Schema({
 const Table = mongoose.model('Table', new mongoose.Schema({
     name: String, status: { type: String, default: 'livre' }, items: { type: Array, default: [] }
 }));
-
-// NOVO: Modelo de Clientes (Fiado)
-const customerSchema = new mongoose.Schema({
+const Customer = mongoose.model('Customer', new mongoose.Schema({
     name: { type: String, required: true },
     phone: { type: String, default: '' },
     createdAt: { type: Date, default: Date.now }
-});
-const Customer = mongoose.model('Customer', customerSchema);
+}));
 
 // ================= ROTAS DE CLIENTES =================
 app.get('/api/customers', async (req, res) => {
     try { res.json(await Customer.find().sort({ name: 1 })); } 
-    catch (error) { res.status(500).json({ error: 'Erro' }); }
+    catch (error) { res.status(500).json({ error: 'Erro ao buscar clientes' }); }
 });
 app.post('/api/customers', async (req, res) => {
     try { res.status(201).json(await new Customer(req.body).save()); } 
-    catch (error) { res.status(500).json({ error: 'Erro' }); }
+    catch (error) { res.status(500).json({ error: 'Erro ao cadastrar cliente' }); }
 });
 app.delete('/api/customers/:id', async (req, res) => {
     try { await Customer.findByIdAndDelete(req.params.id); res.json({ success: true }); } 
-    catch (error) { res.status(500).json({ error: 'Erro' }); }
+    catch (error) { res.status(500).json({ error: 'Erro ao excluir cliente' }); }
 });
 
-// ================= DEMAIS ROTAS =================
+// ================= ROTAS DE CATEGORIAS =================
 app.get('/api/categories', async (req, res) => res.json(await Category.find()));
 app.post('/api/categories', async (req, res) => res.json(await new Category(req.body).save()));
 app.delete('/api/categories/:id', async (req, res) => { await Category.findByIdAndDelete(req.params.id); res.json({ msg: 'OK' }); });
 
+// ================= ROTAS DE PRODUTOS =================
 app.get('/api/products', async (req, res) => res.json(await Product.find()));
 app.post('/api/products', async (req, res) => res.json(await new Product(req.body).save()));
 app.put('/api/products/:id', async (req, res) => { await Product.findByIdAndUpdate(req.params.id, req.body); res.json({ msg: 'Produto atualizado' }); });
 app.delete('/api/products/:id', async (req, res) => { await Product.findByIdAndDelete(req.params.id); res.json({ msg: 'OK' }); });
 
-// Rotas de Mesas / Comandas
+// ================= ROTAS DE MESAS =================
 app.get('/api/tables', async (req, res) => res.json(await Table.find().sort({ name: 1 })));
 app.post('/api/tables', async (req, res) => res.json(await new Table(req.body).save()));
 app.delete('/api/tables/:id', async (req, res) => { await Table.findByIdAndDelete(req.params.id); res.json({ msg: 'OK' }); });
 
 app.put('/api/tables/:id/add', async (req, res) => {
-    const table = await Table.findById(req.params.id);
-    const { product } = req.body;
-    const existingItem = table.items.find(i => i.id === product._id);
-    if (existingItem) existingItem.quantity += 1;
-    else table.items.push({ id: product._id, productName: product.name, price: product.price, quantity: 1, ticketCount: product.ticketCount, isWholesale: product.isWholesale });
-    table.status = 'ocupada'; table.markModified('items');
-    await table.save(); res.json(table);
+    try {
+        const table = await Table.findById(req.params.id);
+        const { product } = req.body;
+        const existingItem = table.items.find(i => i.id === product._id);
+        if (existingItem) existingItem.quantity += 1;
+        else table.items.push({ id: product._id, productName: product.name, price: product.price, quantity: 1, ticketCount: product.ticketCount, isWholesale: product.isWholesale });
+        table.status = 'ocupada'; table.markModified('items');
+        await table.save(); res.json(table);
+    } catch (error) { res.status(500).json({ error: 'Erro ao adicionar item na mesa' }); }
 });
 
 app.put('/api/tables/:id/remove', async (req, res) => {
-    const table = await Table.findById(req.params.id);
-    const itemIndex = table.items.findIndex(i => i.id === req.body.productId);
-    if (itemIndex > -1) {
-        table.items[itemIndex].quantity -= 1;
-        if (table.items[itemIndex].quantity <= 0) table.items.splice(itemIndex, 1);
-    }
-    if (table.items.length === 0) table.status = 'livre';
-    table.markModified('items');
-    await table.save(); res.json(table);
+    try {
+        const table = await Table.findById(req.params.id);
+        const itemIndex = table.items.findIndex(i => i.id === req.body.productId);
+        if (itemIndex > -1) {
+            table.items[itemIndex].quantity -= 1;
+            if (table.items[itemIndex].quantity <= 0) table.items.splice(itemIndex, 1);
+        }
+        if (table.items.length === 0) table.status = 'livre';
+        table.markModified('items');
+        await table.save(); res.json(table);
+    } catch (error) { res.status(500).json({ error: 'Erro ao remover item da mesa' }); }
 });
 
 app.post('/api/tables/:id/checkout', async (req, res) => {
-    const table = await Table.findById(req.params.id);
-    await new Order({ items: req.body.items, total: req.body.total, paymentMethod: req.body.paymentMethod, waiter: req.body.waiter || 'Garçom' }).save();
-    for (let item of req.body.items) await Product.findByIdAndUpdate(item.id, { $inc: { stock: -item.quantity } });
-    table.items = []; table.status = 'livre'; await table.save();
-    res.json({ msg: 'Mesa fechada' });
+    try {
+        const table = await Table.findById(req.params.id);
+        await new Order({ items: req.body.items, total: req.body.total, paymentMethod: req.body.paymentMethod, waiter: req.body.waiter || 'Garçom' }).save();
+        if (req.body.items && Array.isArray(req.body.items)) {
+            for (let item of req.body.items) {
+                if (item.id) await Product.findByIdAndUpdate(item.id, { $inc: { stock: -item.quantity } });
+            }
+        }
+        table.items = []; table.status = 'livre'; await table.save();
+        res.json({ msg: 'Mesa fechada com sucesso' });
+    } catch (error) { 
+        console.error("Erro no checkout da mesa:", error);
+        res.status(500).json({ error: 'Erro ao fechar mesa' }); 
+    }
 });
 
+// ================= ROTAS DE PEDIDOS E HISTÓRICO =================
+app.post('/api/orders', async (req, res) => {
+    try {
+        await new Order(req.body).save();
+        if (req.body.items && Array.isArray(req.body.items)) {
+            for (let item of req.body.items) {
+                if (item.id) await Product.findByIdAndUpdate(item.id, { $inc: { stock: -item.quantity } });
+            }
+        }
+        res.json({ msg: 'Pedido salvo com sucesso' });
+    } catch (error) {
+        console.error("Erro ao salvar pedido:", error);
+        res.status(500).json({ error: 'Erro ao salvar pedido' });
+    }
+});
+
+app.get('/api/orders', async (req, res) => {
+    try {
+        const { start, end } = req.query;
+        let query = {};
+        if (start && end) {
+            query.date = { $gte: new Date(start), $lte: new Date(end) };
+        }
+        const orders = await Order.find(query).sort({ date: -1 });
+        res.json(orders);
+    } catch (error) {
+        console.error("Erro ao buscar histórico:", error);
+        res.status(500).json({ error: 'Erro ao buscar histórico' });
+    }
+});
+
+// ================= ROTAS PIX =================
 app.post('/api/pix', async (req, res) => {
     try {
         const result = await payment.create({
@@ -107,16 +148,6 @@ app.post('/api/pix', async (req, res) => {
     } catch (error) { res.status(500).json({ error: 'Erro ao gerar PIX' }); }
 });
 app.get('/api/pix/:id', async (req, res) => { try { res.json({ status: (await payment.get({ id: req.params.id })).status }); } catch (error) { res.status(500).json({ error: 'Erro' }); } });
-
-app.post('/api/orders', async (req, res) => {
-    await new Order(req.body).save();
-    for (let item of req.body.items) await Product.findByIdAndUpdate(item.id, { $inc: { stock: -item.quantity } });
-    res.json({ msg: 'Pedido salvo' });
-});
-app.get('/api/orders', async (req, res) => {
-    const { start, end } = req.query;
-    res.json(await Order.find(start && end ? { date: { $gte: new Date(start), $lte: new Date(end) } } : {}).sort({ date: -1 }));
-});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
