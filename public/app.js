@@ -97,8 +97,73 @@ async function deleteClient(id) {
 function renderAdminCustomers() {
     document.getElementById('admin-client-list').innerHTML = allCustomers.map(c => `<li>
         <span><strong>${c.name}</strong> <small>(${c.phone || 'S/N'})</small></span>
-        <button class="btn-danger" onclick="deleteClient('${c._id}')">X</button>
+        <div style="display: flex; gap: 5px;">
+            <button class="btn-pay" style="background: #3b82f6; color: white; padding: 4px 8px; font-size: 12px;" onclick="openClientDebtModal('${c.name}')">Extrato 📋</button>
+            <button class="btn-danger" style="padding: 4px 8px; font-size: 12px;" onclick="deleteClient('${c._id}')">X</button>
+        </div>
     </li>`).join('');
+}
+
+// ================= EXTRATO DE FIADO DO CLIENTE =================
+async function openClientDebtModal(clientName) {
+    document.getElementById('debt-modal-title').innerText = `Fiado: ${clientName}`;
+    document.getElementById('debt-modal-subtitle').innerText = 'Histórico de compras pendentes.';
+    document.getElementById('debt-items-list').innerHTML = '<p style="text-align:center; color:var(--text-muted);">Carregando...</p>';
+    document.getElementById('debt-total-amount').innerText = 'R$ 0,00';
+    document.getElementById('customer-debt-modal').classList.add('active');
+
+    try {
+        const res = await fetch(`${API_URL}/customers/debt/${encodeURIComponent(clientName)}`);
+        const orders = await res.json();
+        
+        let totalDebt = 0;
+        if (!orders || orders.length === 0) {
+            document.getElementById('debt-items-list').innerHTML = '<p style="text-align:center; color:var(--success); font-style:italic; padding:10px;">Nenhum débito pendente! Conta zerada. 🎉</p>';
+            document.getElementById('btn-settle-debt').style.display = 'none';
+            return;
+        }
+
+        document.getElementById('btn-settle-debt').style.display = 'block';
+        document.getElementById('btn-settle-debt').setAttribute('onclick', `settleClientDebt('${clientName}')`);
+
+        let html = '';
+        orders.forEach((order, idx) => {
+            totalDebt += order.total;
+            const dataHora = new Date(order.date).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+            let itemsText = order.items ? order.items.map(i => `${i.quantity}x ${i.productName}`).join(', ') : 'Itens diversos';
+            html += `<li style="flex-direction: column; align-items: flex-start; padding: 8px 10px; margin-bottom: 6px;">
+                <div style="width: 100%; display: flex; justify-content: space-between; font-size: 13px;">
+                    <span style="color: var(--text-muted);">${dataHora}</span>
+                    <strong style="color: var(--success);">R$ ${order.total.toFixed(2)}</strong>
+                </div>
+                <div style="font-size: 13px; margin-top: 3px; font-weight: 500;">${itemsText}</div>
+            </li>`;
+        });
+
+        document.getElementById('debt-items-list').innerHTML = html;
+        document.getElementById('debt-total-amount').innerText = `R$ ${totalDebt.toFixed(2)}`;
+    } catch (e) {
+        console.error(e);
+        alert('Erro ao carregar o extrato do cliente.');
+    }
+}
+
+function closeCustomerDebtModal() {
+    document.getElementById('customer-debt-modal').classList.remove('active');
+}
+
+async function settleClientDebt(clientName) {
+    if (!confirm(`Deseja quitar toda a dívida de ${clientName}?`)) return;
+    try {
+        const res = await fetch(`${API_URL}/customers/debt/${encodeURIComponent(clientName)}/settle`, { method: 'POST' });
+        if (!res.ok) throw new Error('Erro ao quitar conta');
+        showToast(`✅ Dívida de ${clientName} quitada com sucesso!`);
+        closeCustomerDebtModal();
+        loadAdminData();
+    } catch (e) {
+        alert('Erro ao processar a quitação.');
+        console.error(e);
+    }
 }
 
 async function fetchCategories() {
@@ -171,7 +236,6 @@ async function fetchHistory() {
         const data = await res.json();
         currentDayOrders = Array.isArray(data) ? data : [];
     } catch (e) {
-        console.error("Erro ao buscar histórico:", e);
         currentDayOrders = [];
     }
     
@@ -333,7 +397,7 @@ async function finalizeTableOrder(data) {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify({ paymentMethod: data.method, total: data.total, items: data.items, waiter: 'Garçom' }) 
         });
-        if (!res.ok) throw new Error('Erro ao fechar mesa');
+        if (!res.ok) throw new Error('Erro');
 
         const dateStr = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR');
         let printHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white; margin-bottom: 0;"><div style="text-align: center;"><h3>Conteiner Beer</h3><h2 style="font-size: 16px;">${data.tableName}</h2></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div><table style="width: 100%; font-size: 11px;">`;
@@ -349,8 +413,7 @@ async function finalizeTableOrder(data) {
         switchWaiterTab('mesas'); 
         setTimeout(() => window.print(), 200);
     } catch (e) {
-        alert('Erro ao registrar fechamento da mesa.');
-        console.error(e);
+        alert('Erro ao registrar fechamento.');
     }
 }
 
@@ -474,7 +537,7 @@ async function finalizeOrder(paymentMethod) {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify({ items: cart, total: total, paymentMethod: paymentMethod, waiter: 'Garçom' }) 
         });
-        if (!res.ok) throw new Error('Erro ao salvar venda');
+        if (!res.ok) throw new Error('Erro');
 
         let printHTML = ''; const dateStr = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR');
         const retailItems = cart.filter(i => !i.isWholesale); const wholesaleItems = cart.filter(i => i.isWholesale);
@@ -486,14 +549,9 @@ async function finalizeOrder(paymentMethod) {
             printHTML += `</table><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="text-align: right;"><strong>TOTAL: R$ ${cupomTotal.toFixed(2)}</strong></div><p>Pagamento: ${paymentMethod}</p></div>`;
         }
         document.getElementById('print-area').innerHTML = printHTML; 
-        cart = []; 
-        updateCartUI(); 
-        closeCartModal(); 
-        fetchProducts('waiter'); 
-        setTimeout(() => window.print(), 200);
+        cart = []; updateCartUI(); closeCartModal(); fetchProducts('waiter'); setTimeout(() => window.print(), 200);
     } catch (e) {
-        alert('Erro ao finalizar o pedido. Tente novamente.');
-        console.error(e);
+        alert('Erro ao finalizar pedido.');
     }
 }
 
