@@ -32,12 +32,13 @@ const Table = mongoose.model('Table', new mongoose.Schema({
     name: String, 
     status: { type: String, default: 'livre' }, 
     items: { type: Array, default: [] },
-    needsPrint: { type: Boolean, default: false } // Controle de impressão de conferência de mesa
+    needsPrint: { type: Boolean, default: false } 
 }));
 const Customer = mongoose.model('Customer', new mongoose.Schema({
     name: { type: String, required: true },
     phone: { type: String, default: '' },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+    payments: [{ amount: Number, date: { type: Date, default: Date.now } }] // Histórico de abatimentos
 }));
 
 // ================= ROTAS DE CLIENTES E FIADO =================
@@ -63,22 +64,33 @@ app.get('/api/customers/debt/:name', async (req, res) => {
             paymentMethod: { $regex: `Fiado - ${clientName}`, $options: 'i' },
             settled: { $ne: true }
         }).sort({ date: -1 });
-        res.json(orders);
+        const customer = await Customer.findOne({ name: clientName });
+        res.json({ orders, payments: customer ? customer.payments : [] });
     } catch (error) {
-        res.status(500).json({ error: 'Erro ao buscar dívida do cliente' });
+        res.status(500).json({ error: 'Erro ao buscar dívida' });
     }
+});
+
+// Rota para pagamento parcial (abatimento)
+app.post('/api/customers/debt/:name/pay', async (req, res) => {
+    try {
+        const { amount } = req.body;
+        await Customer.findOneAndUpdate(
+            { name: req.params.name },
+            { $push: { payments: { amount, date: new Date() } } }
+        );
+        res.json({ success: true });
+    } catch (error) { res.status(500).json({ error: 'Erro ao registrar pagamento' }); }
 });
 
 app.post('/api/customers/debt/:name/settle', async (req, res) => {
     try {
         const clientName = req.params.name;
         await Order.updateMany(
-            { 
-                paymentMethod: { $regex: `Fiado - ${clientName}`, $options: 'i' },
-                settled: { $ne: true }
-            },
+            { paymentMethod: { $regex: `Fiado - ${clientName}`, $options: 'i' }, settled: { $ne: true } },
             { $set: { settled: true } }
         );
+        await Customer.findOneAndUpdate({ name: clientName }, { $set: { payments: [] } });
         res.json({ success: true, msg: 'Conta quitada com sucesso!' });
     } catch (error) {
         res.status(500).json({ error: 'Erro ao quitar conta' });

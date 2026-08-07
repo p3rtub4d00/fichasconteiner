@@ -20,16 +20,14 @@ window.onload = () => {
     if (savedRole === 'admin') { switchView('admin-view'); loadAdminData(); } 
     else if (savedRole === 'garcom') { switchView('waiter-view'); loadWaiterData(); }
     
-    // Inicia monitoramento automático de impressões (pedidos e mesas)
     setInterval(checkNewOrdersForPrint, 5000);
 };
 
-// Monitoramento Automático de Impressões no Computador do Caixa
+// ================= IMPRESSÃO AUTOMÁTICA =================
 async function checkNewOrdersForPrint() {
     if (!document.getElementById('admin-view').classList.contains('active')) return;
     
     try {
-        // 1. Verifica pedidos pendentes
         const resOrders = await fetch(`${API_URL}/orders/pending`);
         const orders = await resOrders.json();
         
@@ -38,7 +36,6 @@ async function checkNewOrdersForPrint() {
             await fetch(`${API_URL}/orders/${order._id}/printed`, { method: 'PUT' });
         }
 
-        // 2. Verifica conferências de mesa pendentes
         const resTables = await fetch(`${API_URL}/tables/pending-prints`);
         const tablesToPrint = await resTables.json();
 
@@ -174,46 +171,98 @@ function renderAdminCustomers() {
     </li>`).join('');
 }
 
-// ================= EXTRATO DE FIADO DO CLIENTE =================
+// ================= EXTRATO DE FIADO COM ABATIMENTO =================
 async function openClientDebtModal(clientName) {
     document.getElementById('debt-modal-title').innerText = `Fiado: ${clientName}`;
-    document.getElementById('debt-modal-subtitle').innerText = 'Histórico de compras pendentes.';
+    document.getElementById('debt-modal-subtitle').innerText = 'Histórico de compras e pagamentos.';
     document.getElementById('debt-items-list').innerHTML = '<p style="text-align:center; color:var(--text-muted);">Carregando...</p>';
     document.getElementById('debt-total-amount').innerText = 'R$ 0,00';
     document.getElementById('customer-debt-modal').classList.add('active');
 
     try {
         const res = await fetch(`${API_URL}/customers/debt/${encodeURIComponent(clientName)}`);
-        const orders = await res.json();
+        const data = await res.json();
         
-        let totalDebt = 0;
-        if (!orders || orders.length === 0) {
+        const orders = data.orders || [];
+        const payments = data.payments || [];
+        
+        let totalPurchases = orders.reduce((sum, o) => sum + o.total, 0);
+        let totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+        let currentDebt = totalPurchases - totalPaid;
+
+        if (currentDebt <= 0 && orders.length === 0) {
             document.getElementById('debt-items-list').innerHTML = '<p style="text-align:center; color:var(--success); font-style:italic; padding:10px;">Nenhum débito pendente! Conta zerada. 🎉</p>';
             document.getElementById('btn-settle-debt').style.display = 'none';
+            document.getElementById('debt-total-amount').innerText = 'R$ 0,00';
             return;
         }
 
         document.getElementById('btn-settle-debt').style.display = 'block';
         document.getElementById('btn-settle-debt').setAttribute('onclick', `settleClientDebt('${clientName}')`);
 
-        let html = '';
-        orders.forEach((order) => {
-            totalDebt += order.total;
-            const dataHora = new Date(order.date).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-            let itemsText = order.items ? order.items.map(i => `${i.quantity}x ${i.productName}`).join(', ') : 'Itens diversos';
-            html += `<li style="flex-direction: column; align-items: flex-start; padding: 8px 10px; margin-bottom: 6px;">
-                <div style="width: 100%; display: flex; justify-content: space-between; font-size: 13px;">
-                    <span style="color: var(--text-muted);">${dataHora}</span>
-                    <strong style="color: var(--success);">R$ ${order.total.toFixed(2)}</strong>
-                </div>
-                <div style="font-size: 13px; margin-top: 3px; font-weight: 500;">${itemsText}</div>
-            </li>`;
+        // Juntar as compras e pagamentos numa linha do tempo
+        let history = [];
+        orders.forEach(o => history.push({ type: 'compra', date: new Date(o.date), total: o.total, items: o.items }));
+        payments.forEach(p => history.push({ type: 'pagamento', date: new Date(p.date), total: p.amount }));
+        
+        history.sort((a, b) => b.date - a.date); // Mais recentes primeiro
+
+        // Montar a interface (incluindo o input para abater valor)
+        let html = `
+            <div style="display: flex; gap: 5px; margin-bottom: 15px; background: var(--bg-card); padding: 10px; border-radius: 8px;">
+                <input type="number" id="partial-pay-amount" placeholder="Valor a abater (R$)" style="flex:1; padding: 8px; border-radius: 4px; border: 1px solid var(--border);">
+                <button class="btn-pay" style="padding: 8px 15px; margin: 0;" onclick="payPartialDebt('${clientName}')">Abater</button>
+            </div>
+            <hr style="border: 0; border-top: 1px solid var(--border); margin-bottom: 15px;">
+        `;
+
+        history.forEach((h) => {
+            const dataHora = h.date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+            
+            if (h.type === 'pagamento') {
+                html += `<li style="flex-direction: column; align-items: flex-start; padding: 8px 10px; margin-bottom: 6px; border-left: 4px solid var(--success);">
+                    <div style="width: 100%; display: flex; justify-content: space-between; font-size: 13px;">
+                        <span style="color: var(--text-muted);">${dataHora}</span>
+                        <strong style="color: var(--success);">- R$ ${h.total.toFixed(2)} (Abatimento)</strong>
+                    </div>
+                </li>`;
+            } else {
+                let itemsText = h.items ? h.items.map(i => `${i.quantity}x ${i.productName}`).join(', ') : 'Itens diversos';
+                html += `<li style="flex-direction: column; align-items: flex-start; padding: 8px 10px; margin-bottom: 6px; border-left: 4px solid var(--danger);">
+                    <div style="width: 100%; display: flex; justify-content: space-between; font-size: 13px;">
+                        <span style="color: var(--text-muted);">${dataHora}</span>
+                        <strong style="color: var(--danger);">R$ ${h.total.toFixed(2)}</strong>
+                    </div>
+                    <div style="font-size: 13px; margin-top: 3px; font-weight: 500;">${itemsText}</div>
+                </li>`;
+            }
         });
 
         document.getElementById('debt-items-list').innerHTML = html;
-        document.getElementById('debt-total-amount').innerText = `R$ ${totalDebt.toFixed(2)}`;
+        document.getElementById('debt-total-amount').innerText = `R$ ${currentDebt.toFixed(2)}`;
     } catch (e) {
         alert('Erro ao carregar o extrato do cliente.');
+    }
+}
+
+async function payPartialDebt(clientName) {
+    const amountInput = document.getElementById('partial-pay-amount');
+    const amount = parseFloat(amountInput.value);
+    
+    if (!amount || amount <= 0) return alert('Digite um valor válido para abater!');
+    if (!confirm(`Confirmar abatimento de R$ ${amount.toFixed(2)} para ${clientName}?`)) return;
+
+    try {
+        const res = await fetch(`${API_URL}/customers/debt/${encodeURIComponent(clientName)}/pay`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount })
+        });
+        if (!res.ok) throw new Error('Erro');
+        showToast(`✅ R$ ${amount.toFixed(2)} abatidos com sucesso!`);
+        openClientDebtModal(clientName); // Atualiza a tela
+    } catch(e) {
+        alert('Erro ao processar abatimento.');
     }
 }
 
@@ -222,7 +271,7 @@ function closeCustomerDebtModal() {
 }
 
 async function settleClientDebt(clientName) {
-    if (!confirm(`Deseja quitar toda a dívida de ${clientName}?`)) return;
+    if (!confirm(`Deseja quitar todo o saldo restante de ${clientName}?`)) return;
     try {
         const res = await fetch(`${API_URL}/customers/debt/${encodeURIComponent(clientName)}/settle`, { method: 'POST' });
         if (!res.ok) throw new Error('Erro ao quitar conta');
@@ -347,13 +396,27 @@ async function loadWaiterData() {
 
 async function fetchProducts(role) {
     const res = await fetch(`${API_URL}/products`); allProducts = await res.json();
+    
     if (role === 'admin') {
-        document.getElementById('admin-product-list').innerHTML = allProducts.map(p => {
+        const totalEstoque = allProducts.reduce((acc, p) => acc + (p.price * p.stock), 0);
+        
+        let htmlProdutos = `<li style="background: var(--primary); color: white; justify-content: center; font-weight: bold; border-radius: 6px; margin-bottom: 10px;">
+            Valor em Estoque: R$ ${totalEstoque.toFixed(2)}
+        </li>`;
+
+        htmlProdutos += allProducts.map(p => {
             return `<li><div><strong>${p.name}</strong> ${p.isWholesale?'<span class="badge-atacado">ATACADO</span>':''}<br><small>Estoque: ${p.stock}</small></div>
-            <div style="display:flex; gap:5px; align-items:center;"><span>R$ ${p.price.toFixed(2)}</span>
-            <button class="btn-danger" style="margin:0;" onclick="deleteProduct('${p._id}')">X</button></div></li>`;
+            <div style="display:flex; gap:5px; align-items:center;">
+                <span>R$ ${p.price.toFixed(2)}</span>
+                <button class="btn-pay" style="margin:0; padding:4px 8px; font-size:12px; background:var(--primary);" onclick="openEditProdModal('${p._id}')">✏️</button>
+                <button class="btn-danger" style="margin:0; padding:4px 8px;" onclick="deleteProduct('${p._id}')">X</button>
+            </div></li>`;
         }).join('');
-    } else { applyWaiterFilters(); }
+        
+        document.getElementById('admin-product-list').innerHTML = htmlProdutos;
+    } else { 
+        applyWaiterFilters(); 
+    }
 }
 
 function switchWaiterTab(tab) {
