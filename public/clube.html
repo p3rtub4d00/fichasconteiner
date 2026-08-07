@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clube VIP - Conteiner Beer</title>
+    <meta name="theme-color" content="#f59e0b">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        :root {
+            --bg-base: #0f172a;
+            --bg-card: #1e293b;
+            --primary: #f59e0b;
+            --primary-hover: #d97706;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --gold: #fbbf24;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .club-container {
+            width: 100%;
+            max-width: 480px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .hero h1 {
+            font-size: 26px;
+            color: var(--primary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .hero p {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .badge-table {
+            display: inline-block;
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .plans-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .plan-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #334155;
+            position: relative;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .plan-card.featured {
+            border-color: var(--primary);
+            background: linear-gradient(145deg, #1e293b 0%, #261f11 100%);
+            box-shadow: 0 4px 20px rgba(245, 158, 11, 0.15);
+        }
+
+        .plan-badge {
+            position: absolute;
+            top: -10px;
+            right: 20px;
+            background: var(--primary);
+            color: #000;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 3px 10px;
+            border-radius: 10px;
+            text-transform: uppercase;
+        }
+
+        .plan-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 0 0 5px 0;
+            color: var(--text-main);
+        }
+
+        .plan-price {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 12px;
+        }
+
+        .plan-features {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 15px 0;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .plan-features li {
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .plan-features li strong {
+            color: var(--text-main);
+        }
+
+        .btn-subscribe {
+            display: block;
+            width: 100%;
+            background: var(--primary);
+            color: #000;
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.2s;
+            box-sizing: border-box;
+        }
+
+        .btn-subscribe:hover {
+            background: var(--primary-hover);
+        }
+
+        .footer-info {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="club-container">
+        <div class="hero">
+            <div class="badge-table">🍻 Exclusivo para Mesas</div>
+            <h1>Clube Conteiner Beer</h1>
+            <p>Antecipe seus créditos mensais, ganhe bônus exclusivos para consumir nas mesas e nunca fique sem sua cerveja gelada!</p>
+        </div>
+
+        <div class="plans-wrapper">
+            
+            <!-- PLANO BRONZE -->
+            <div class="plan-card">
+                <h3 class="plan-title">Plano Bronze</h3>
+                <div class="plan-price">R$ 150 <span style="font-size:12px; color:var(--text-muted)">/mês</span></div>
+                <ul class="plan-features">
+                    <li>✅ <strong>R$ 170,00</strong> em créditos nas mesas</li>
+                    <li>✅ Validade de consumo no mês</li>
+                    <li>✅ Grupo VIP de avisos de eventos</li>
+                </ul>
+                <a href="https://wa.me/5569999999999?text=Olá!%20Gostaria%20de%20assinar%20o%20Plano%20Bronze%20do%20Clube%20Conteiner%20Beer." class="btn-subscribe" target="_blank">Quero o Plano Bronze</a>
+            </div>
+
+            <!-- PLANO PRATA -->
+            <div class="plan-card">
+                <h3 class="plan-title">Plano Prata</h3>
+                <div class="plan-price">R$ 300 <span style="font-size:12px; color:var(--text-muted)">/mês</span></div>
+                <ul class="plan-features">
+                    <li>✅ <strong>R$ 350,00</strong> em créditos nas mesas</li>
+                    <li>✅ 1 Porção de petisco cortesia por mês</li>
+                    <li>✅ Acumule até 20% do saldo não usado</li>
+                </ul>
+                <a href="https://wa.me/5569999999999?text=Olá!%20Gostaria%20de%20assinar%20o%20Plano%20Prata%20do%20Clube%20Conteiner%20Beer." class="btn-subscribe" target="_blank">Quero o Plano Prata</a>
+            </div>
+
+            <!-- PLANO OURO -->
+            <div class="plan-card featured">
+                <div class="plan-badge">Mais Popular</div>
+                <h3 class="plan-title">Plano Ouro 👑</h3>
+                <div class="plan-price">R$ 500 <span style="font-size:12px; color:var(--text-muted)">/mês</span></div>
+                <ul class="plan-features">
+                    <li>⭐ <strong>R$ 600,00</strong> em créditos nas mesas</li>
+                    <li>⭐ <strong>2 Porções</strong> de petisco cortesia por mês</li>
+                    <li>⭐ <strong>40% de Rollover</strong> (saldo não usado acumula)</li>
+                    <li>⭐ Reserva de mesa garantida aos sábados</li>
+                </ul>
+                <a href="https://wa.me/5569999999999?text=Olá!%20Gostaria%20de%20assinar%20o%20Plano%20Ouro%20do%20Clube%20Conteiner%20Beer." class="btn-subscribe" target="_blank" style="background: var(--gold);">Quero o Plano Ouro VIP</a>
+            </div>
+
+        </div>
+
+        <div class="footer-info">
+            <p>Dúvidas? Chame nosso atendimento no balcão ou pelo WhatsApp.<br><strong>Conteiner Beer - Porto Velho/RO</strong></p>
+        </div>
+    </div>
+
+</body>
+</html>
