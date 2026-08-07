@@ -554,3 +554,12 @@ async function finalizeOrder(paymentMethod) {
 }
 
 function gerarFichaHtml(nome, preco, data, extraHtml) { return `<div class="ticket"><h3>Conteiner Beer</h3><h2>${nome}</h2>${extraHtml}<h1>R$ ${preco.toFixed(2)}</h1><div class="ticket-id">${generateUniqueId()}</div><p>${data}</p></div>`; }
+
+// ================= REGISTRO DO SERVICE WORKER (PWA) =================
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('Service Worker registrado com sucesso!', reg))
+            .catch(err => console.error('Erro ao registrar Service Worker:', err));
+    });
+}
