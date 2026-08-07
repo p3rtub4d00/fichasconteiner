@@ -307,10 +307,9 @@
                 </div>
                 <ul class="plan-features">
                     <li>🎯 <strong>R$ 170,00</strong> em créditos nas mesas</li>
-                    <li>🔒 Validade: Zera no final do mês</li>
-                    <li>⭐ Grupo VIP de avisos e eventos</li>
+                    <li>🔄 Acumula até <strong>5%</strong> do que sobrou para o mês seguinte</li>
                 </ul>
-                <button class="btn-subscribe" onclick="openModal('Bronze', 'R$ 150', 'R$ 170 em créditos', 'O saldo deste plano zera no final do mês e não acumula.')">Quero o Plano Bronze</button>
+                <button class="btn-subscribe" onclick="openModal('Bronze', 'R$ 150', 'R$ 170 em créditos', 'Permite acumular até 5% do saldo restante para o mês seguinte. Consumo restrito ao estabelecimento.')">Quero o Plano Bronze</button>
             </div>
 
             <!-- PLANO PRATA -->
@@ -322,9 +321,9 @@
                 <ul class="plan-features">
                     <li>🎯 <strong>R$ 350,00</strong> em créditos nas mesas</li>
                     <li>🍟 1 Porção de petisco cortesia por mês</li>
-                    <li>🔄 Acumula até <strong>10%</strong> do que sobrou para o mês seguinte</li>
+                    <li>🔄 Acumula até <strong>20%</strong> do que sobrou para o mês seguinte</li>
                 </ul>
-                <button class="btn-subscribe" onclick="openModal('Prata', 'R$ 300', 'R$ 350 em créditos + 1 Porção', 'Permite acumular até 10% do saldo restante para o mês seguinte. Consumo restrito ao estabelecimento.')">Quero o Plano Prata</button>
+                <button class="btn-subscribe" onclick="openModal('Prata', 'R$ 300', 'R$ 350 em créditos + 1 Porção', 'Permite acumular até 20% do saldo restante para o mês seguinte. Consumo restrito ao estabelecimento.')">Quero o Plano Prata</button>
             </div>
 
             <!-- PLANO OURO -->
@@ -387,7 +386,6 @@
         }
 
         function confirmRedirect() {
-            // Substitua abaixo com o seu número real de WhatsApp com DDI e DDD (ex: 5569999999999)
             const phone = "5569999999999"; 
             const message = encodeURIComponent(`Olá! Gostaria de assinar o *Plano ${selectedPlanName}* do Clube Conteiner Beer.`);
             window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
