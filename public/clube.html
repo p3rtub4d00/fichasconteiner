@@ -189,7 +189,7 @@
             border: none;
         }
 
-        .plan-subscribe:hover {
+        .btn-subscribe:hover {
             background: var(--primary);
             color: #000;
         }
@@ -237,13 +237,6 @@
             margin: 0 0 10px 0;
             color: var(--primary);
             font-size: 20px;
-        }
-
-        .modal-box p {
-            font-size: 13px;
-            color: var(--text-muted);
-            line-height: 1.6;
-            margin-bottom: 16px;
         }
 
         .terms-box {
@@ -317,7 +310,7 @@
                     <li>🔒 Validade: Zera no final do mês</li>
                     <li>⭐ Grupo VIP de avisos e eventos</li>
                 </ul>
-                <button class="btn-subscribe" onclick="openModal('Bronze', 'R$ 150', 'R$ 170 em créditos', 'O saldo deste plano é válido exclusivamente para o mês vigente e não possui acúmulo para o mês seguinte.')">Quero o Plano Bronze</button>
+                <button class="btn-subscribe" onclick="openModal('Bronze', 'R$ 150', 'R$ 170 em créditos', 'O saldo deste plano zera no final do mês e não acumula.')">Quero o Plano Bronze</button>
             </div>
 
             <!-- PLANO PRATA -->
@@ -329,9 +322,9 @@
                 <ul class="plan-features">
                     <li>🎯 <strong>R$ 350,00</strong> em créditos nas mesas</li>
                     <li>🍟 1 Porção de petisco cortesia por mês</li>
-                    <li>🔄 Acumule até <strong>20%</strong> do saldo não usado</li>
+                    <li>🔄 Acumula até <strong>10%</strong> do que sobrou para o mês seguinte</li>
                 </ul>
-                <button class="btn-subscribe" onclick="openModal('Prata', 'R$ 300', 'R$ 350 em créditos + 1 Porção', 'Permite acumular até 20% do saldo restante para o mês seguinte. Consumo restrito ao estabelecimento.')">Quero o Plano Prata</button>
+                <button class="btn-subscribe" onclick="openModal('Prata', 'R$ 300', 'R$ 350 em créditos + 1 Porção', 'Permite acumular até 10% do saldo restante para o mês seguinte. Consumo restrito ao estabelecimento.')">Quero o Plano Prata</button>
             </div>
 
             <!-- PLANO OURO -->
@@ -344,7 +337,7 @@
                 <ul class="plan-features">
                     <li>🔥 <strong>R$ 600,00</strong> em créditos nas mesas</li>
                     <li>🍟 <strong>2 Porções</strong> de petisco cortesia por mês</li>
-                    <li>🔄 Acumule até <strong>40%</strong> de Rollover no saldo</li>
+                    <li>🔄 Acumula até <strong>40%</strong> do que sobrou para o mês seguinte</li>
                     <li>🛋️ Reserva de mesa garantida aos sábados</li>
                 </ul>
                 <button class="btn-subscribe" onclick="openModal('Ouro', 'R$ 500', 'R$ 600 em créditos + 2 Porções', 'Permite acumular até 40% do saldo restante para o mês seguinte. Válido exclusivamente para consumo nas mesas do bar.')" style="background: var(--gold); color: #000;">Quero o Plano Ouro VIP</button>
