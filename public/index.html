@@ -42,12 +42,12 @@
                     <button onclick="printDailyReport()" class="btn-success" style="width: 100%; margin-top: 15px; font-size: 14px; padding: 12px;">🖨️ Imprimir Fechamento</button>
                 </section>
                 
-                <!-- GERENCIAR CLIENTES (FIADO) -->
+                <!-- GERENCIAR CLIENTES E CLUBE DE CRÉDITO -->
                 <section class="card">
-                    <h3>Clientes Cadastrados (Fiado)</h3>
+                    <h3>Clientes & Clube de Crédito</h3>
                     <div class="form-group-inline">
                         <input type="text" id="client-name" placeholder="Nome do Cliente">
-                        <input type="text" id="client-phone" placeholder="WhatsApp (Opcional)" style="width: 120px;">
+                        <input type="text" id="client-phone" placeholder="WhatsApp" style="width: 110px;">
                         <button onclick="addClient()">Cadastrar</button>
                     </div>
                     <ul id="admin-client-list" class="list mini-list"></ul>
@@ -72,6 +72,7 @@
                     <ul id="admin-category-list" class="list mini-list"></ul>
                 </section>
                 
+                <!-- CADASTRAR PRODUTO COM LEGENDAS -->
                 <section class="card">
                     <h3>Cadastrar Produto</h3>
                     <div class="form-group-stack">
@@ -162,6 +163,31 @@
         </div>
     </div>
 
+    <!-- MODAL GERENCIAR CLUBE DO CLIENTE -->
+    <div id="customer-club-modal" class="modal">
+        <div class="modal-box" style="max-width: 400px; text-align: left;">
+            <h2 id="club-modal-name" style="color: var(--primary); margin-bottom: 10px;">Clube do Cliente</h2>
+            
+            <label style="font-size: 12px; color: var(--text-muted);">Plano Ativo:</label>
+            <select id="modal-club-plan" style="width: 100%; margin-bottom: 15px; padding: 8px;">
+                <option value="Nenhum">Nenhum (Sem Plano)</option>
+                <option value="Bronze">Bronze (Paga R$ 150 / Ganha R$ 170)</option>
+                <option value="Prata">Prata (Paga R$ 300 / Ganha R$ 350)</option>
+                <option value="Ouro">Ouro (Paga R$ 500 / Ganha R$ 600 + 2 Porções + 40% Rollover)</option>
+            </select>
+
+            <label style="font-size: 12px; color: var(--text-muted);">Saldo de Créditos (R$):</label>
+            <input type="number" id="modal-club-balance" step="0.01" style="width: 100%; margin-bottom: 20px; padding: 8px;">
+
+            <input type="hidden" id="modal-club-customer-id">
+
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-success" style="flex: 1; background: var(--success);" onclick="saveCustomerClub()">Salvar Clube</button>
+                <button class="btn-danger" style="flex: 1;" onclick="closeCustomerClubModal()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL EXTRATO DE FIADO DO CLIENTE -->
     <div id="customer-debt-modal" class="modal">
         <div class="modal-box" style="max-width: 450px;">
@@ -181,11 +207,11 @@
         </div>
     </div>
 
-    <!-- MODAL SELECIONAR CLIENTE (FIADO) -->
+    <!-- MODAL SELECIONAR CLIENTE (FIADO/CLUBE) -->
     <div id="customer-select-modal" class="modal">
         <div class="modal-box">
             <h2 style="color: var(--primary);">Selecione o Cliente</h2>
-            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">A conta ficará pendurada para esta pessoa.</p>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">A conta será associada a esta pessoa.</p>
             <ul id="customer-select-list" class="list" style="max-height: 200px; text-align: left; margin-bottom: 15px;"></ul>
             <button class="btn-danger" style="width: 100%;" onclick="closeCustomerModal()">Cancelar</button>
         </div>
@@ -229,7 +255,7 @@
                 <button class="btn-pay" onclick="processTableCheckout('Dinheiro')">💵 Dinheiro</button>
                 <button class="btn-pay" onclick="processTableCheckout('Cartao')">💳 Cartão</button>
                 <button class="btn-pay pix-btn" onclick="processTableCheckout('Pix')">💠 PIX</button>
-                <button class="btn-pay" style="background: #f59e0b; color: white; border-color: #d97706;" onclick="openCustomerModal('mesa')">📒 Pendurar (Fiado)</button>
+                <button class="btn-pay" style="background: #f59e0b; color: white; border-color: #d97706;" onclick="openCustomerModal('mesa')">📒 Fiado/Clube</button>
             </div>
             <button class="btn-danger" style="margin-top: 15px; width: 100%;" onclick="closeTableCheckoutModal()">Cancelar</button>
         </div>
@@ -246,7 +272,7 @@
                 <button class="btn-pay" onclick="processCheckout('Dinheiro')">💵 Dinheiro</button>
                 <button class="btn-pay" onclick="processCheckout('Cartao')">💳 Cartão</button>
                 <button class="btn-pay pix-btn" onclick="processCheckout('Pix')">💠 PIX</button>
-                <button class="btn-pay" style="background: #f59e0b; color: white; border-color: #d97706;" onclick="openCustomerModal('caixa')">📒 Pendurar (Fiado)</button>
+                <button class="btn-pay" style="background: #f59e0b; color: white; border-color: #d97706;" onclick="openCustomerModal('caixa')">📒 Fiado/Clube</button>
             </div>
             <button class="btn-danger" style="margin-top: 15px;" onclick="closeCartModal()">Cancelar</button>
         </div>

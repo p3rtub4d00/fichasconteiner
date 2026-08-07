@@ -38,10 +38,12 @@ const Customer = mongoose.model('Customer', new mongoose.Schema({
     name: { type: String, required: true },
     phone: { type: String, default: '' },
     createdAt: { type: Date, default: Date.now },
-    payments: [{ amount: Number, date: { type: Date, default: Date.now } }] // Histórico de abatimentos
+    payments: [{ amount: Number, date: { type: Date, default: Date.now } }],
+    clubPlan: { type: String, default: 'Nenhum' }, 
+    clubBalance: { type: Number, default: 0 }
 }));
 
-// ================= ROTAS DE CLIENTES E FIADO =================
+// ================= ROTAS DE CLIENTES E CLUBE =================
 app.get('/api/customers', async (req, res) => {
     try { res.json(await Customer.find().sort({ name: 1 })); } 
     catch (error) { res.status(500).json({ error: 'Erro ao buscar clientes' }); }
@@ -50,6 +52,14 @@ app.get('/api/customers', async (req, res) => {
 app.post('/api/customers', async (req, res) => {
     try { res.status(201).json(await new Customer(req.body).save()); } 
     catch (error) { res.status(500).json({ error: 'Erro ao cadastrar cliente' }); }
+});
+
+app.put('/api/customers/:id/club', async (req, res) => {
+    try {
+        const { clubPlan, clubBalance } = req.body;
+        const updated = await Customer.findByIdAndUpdate(req.params.id, { clubPlan, clubBalance }, { new: true });
+        res.json(updated);
+    } catch (error) { res.status(500).json({ error: 'Erro ao atualizar clube do cliente' }); }
 });
 
 app.delete('/api/customers/:id', async (req, res) => {
@@ -71,7 +81,6 @@ app.get('/api/customers/debt/:name', async (req, res) => {
     }
 });
 
-// Rota para pagamento parcial (abatimento)
 app.post('/api/customers/debt/:name/pay', async (req, res) => {
     try {
         const { amount } = req.body;
@@ -160,7 +169,6 @@ app.post('/api/tables/:id/checkout', async (req, res) => {
     } catch (error) { res.status(500).json({ error: 'Erro' }); }
 });
 
-// Rotas para gerenciar a impressão remota de conferência de mesa
 app.put('/api/tables/:id/request-print', async (req, res) => {
     try { await Table.findByIdAndUpdate(req.params.id, { needsPrint: true }); res.json({ success: true }); }
     catch (error) { res.status(500).json({ error: 'Erro' }); }

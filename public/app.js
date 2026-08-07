@@ -163,12 +163,54 @@ async function deleteClient(id) {
 
 function renderAdminCustomers() {
     document.getElementById('admin-client-list').innerHTML = allCustomers.map(c => `<li>
-        <span><strong>${c.name}</strong> <small>(${c.phone || 'S/N'})</small></span>
-        <div style="display: flex; gap: 5px;">
-            <button class="btn-pay" style="background: #3b82f6; color: white; padding: 4px 8px; font-size: 12px;" onclick="openClientDebtModal('${c.name}')">Extrato 📋</button>
-            <button class="btn-danger" style="padding: 4px 8px; font-size: 12px;" onclick="deleteClient('${c._id}')">X</button>
+        <span>
+            <strong>${c.name}</strong> 
+            <small style="display:block; color:var(--primary);">Plano: ${c.clubPlan || 'Nenhum'} | Saldo: R$ ${(c.clubBalance || 0).toFixed(2)}</small>
+        </span>
+        <div style="display: flex; gap: 4px;">
+            <button class="btn-pay" style="background: #10b981; color: white; padding: 4px 6px; font-size: 11px;" onclick="openCustomerClubModal('${c._id}')">⭐ Clube</button>
+            <button class="btn-pay" style="background: #3b82f6; color: white; padding: 4px 6px; font-size: 11px;" onclick="openClientDebtModal('${c.name}')">Fiado 📋</button>
+            <button class="btn-danger" style="padding: 4px 6px; font-size: 11px;" onclick="deleteClient('${c._id}')">X</button>
         </div>
     </li>`).join('');
+}
+
+// ================= GESTÃO DO CLUBE DO CLIENTE =================
+function openCustomerClubModal(id) {
+    const customer = allCustomers.find(c => c._id === id);
+    if (!customer) return;
+    
+    document.getElementById('club-modal-name').innerText = `Clube: ${customer.name}`;
+    document.getElementById('modal-club-plan').value = customer.clubPlan || 'Nenhum';
+    document.getElementById('modal-club-balance').value = customer.clubBalance || 0;
+    document.getElementById('modal-club-customer-id').value = customer._id;
+    
+    document.getElementById('customer-club-modal').classList.add('active');
+}
+
+function closeCustomerClubModal() {
+    document.getElementById('customer-club-modal').classList.remove('active');
+}
+
+async function saveCustomerClub() {
+    const id = document.getElementById('modal-club-customer-id').value;
+    const clubPlan = document.getElementById('modal-club-plan').value;
+    const clubBalance = parseFloat(document.getElementById('modal-club-balance').value) || 0;
+
+    try {
+        const res = await fetch(`${API_URL}/customers/${id}/club`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clubPlan, clubBalance })
+        });
+        if (!res.ok) throw new Error('Erro');
+        
+        showToast('⭐ Clube atualizado com sucesso!');
+        closeCustomerClubModal();
+        loadAdminData();
+    } catch (e) {
+        alert('Erro ao salvar dados do clube.');
+    }
 }
 
 // ================= EXTRATO DE FIADO COM ABATIMENTO =================
@@ -200,14 +242,12 @@ async function openClientDebtModal(clientName) {
         document.getElementById('btn-settle-debt').style.display = 'block';
         document.getElementById('btn-settle-debt').setAttribute('onclick', `settleClientDebt('${clientName}')`);
 
-        // Juntar as compras e pagamentos numa linha do tempo
         let history = [];
         orders.forEach(o => history.push({ type: 'compra', date: new Date(o.date), total: o.total, items: o.items }));
         payments.forEach(p => history.push({ type: 'pagamento', date: new Date(p.date), total: p.amount }));
         
-        history.sort((a, b) => b.date - a.date); // Mais recentes primeiro
+        history.sort((a, b) => b.date - a.date); 
 
-        // Montar a interface (incluindo o input para abater valor)
         let html = `
             <div style="display: flex; gap: 5px; margin-bottom: 15px; background: var(--bg-card); padding: 10px; border-radius: 8px;">
                 <input type="number" id="partial-pay-amount" placeholder="Valor a abater (R$)" style="flex:1; padding: 8px; border-radius: 4px; border: 1px solid var(--border);">
@@ -260,7 +300,7 @@ async function payPartialDebt(clientName) {
         });
         if (!res.ok) throw new Error('Erro');
         showToast(`✅ R$ ${amount.toFixed(2)} abatidos com sucesso!`);
-        openClientDebtModal(clientName); // Atualiza a tela
+        openClientDebtModal(clientName); 
     } catch(e) {
         alert('Erro ao processar abatimento.');
     }
@@ -542,7 +582,7 @@ async function finalizeTableOrder(data) {
     }
 }
 
-// ================= MODAL CLIENTE (FIADO) =================
+// ================= MODAL CLIENTE (FIADO E CLUBE) =================
 function openCustomerModal(source) {
     pendingCheckoutSource = source; 
     if (source === 'mesa') closeTableCheckoutModal(); else closeCartModal();
