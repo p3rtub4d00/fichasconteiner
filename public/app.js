@@ -19,7 +19,37 @@ window.onload = () => {
     const savedRole = localStorage.getItem('userRole');
     if (savedRole === 'admin') { switchView('admin-view'); loadAdminData(); } 
     else if (savedRole === 'garcom') { switchView('waiter-view'); loadWaiterData(); }
+    
+    // Inicia monitoramento de impressão se estiver no admin
+    setInterval(checkNewOrdersForPrint, 5000);
 };
+
+// Funcao de Monitoramento Automático
+async function checkNewOrdersForPrint() {
+    // Só imprime se estiver na tela de Admin/Caixa
+    if (!document.getElementById('admin-view').classList.contains('active')) return;
+    
+    try {
+        const res = await fetch(`${API_URL}/orders/pending`);
+        const orders = await res.json();
+        
+        for (const order of orders) {
+            // Imprime
+            printOrderAutomatically(order);
+            // Marca como impresso no banco
+            await fetch(`${API_URL}/orders/${order._id}/printed`, { method: 'PUT' });
+        }
+    } catch (e) { console.log('Erro na checagem de impressao', e); }
+}
+
+function printOrderAutomatically(order) {
+    let printHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white;"><div style="text-align: center;"><h3>Conteiner Beer</h3><p>PEDIDO AUTOMÁTICO</p></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div><table style="width: 100%;">`;
+    if (order.items) order.items.forEach(i => { printHTML += `<tr><td>${i.quantity}x</td><td>${i.productName}</td><td style="text-align:right;">R$ ${(i.price * i.quantity).toFixed(2)}</td></tr>`; });
+    printHTML += `</table><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="text-align: right;"><strong>TOTAL: R$ ${order.total.toFixed(2)}</strong></div><p>Pagamento: ${order.paymentMethod}</p></div>`;
+    
+    document.getElementById('print-area').innerHTML = printHTML;
+    window.print();
+}
 
 function toggleTheme() {
     const isLight = document.body.classList.toggle('light-mode');
