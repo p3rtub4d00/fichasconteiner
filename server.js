@@ -26,7 +26,7 @@ const Order = mongoose.model('Order', new mongoose.Schema({
     items: Array, total: Number, paymentMethod: String, waiter: String, 
     date: { type: Date, default: Date.now },
     settled: { type: Boolean, default: false },
-    printed: { type: Boolean, default: false } // Campo para controlar impressão automática
+    printed: { type: Boolean, default: false }
 }));
 const Table = mongoose.model('Table', new mongoose.Schema({
     name: String, status: { type: String, default: 'livre' }, items: { type: Array, default: [] }
@@ -132,7 +132,8 @@ app.post('/api/tables/:id/checkout', async (req, res) => {
             total: req.body.total, 
             paymentMethod: req.body.paymentMethod, 
             waiter: req.body.waiter || 'Garçom',
-            settled: false 
+            settled: false,
+            printed: false
         }).save();
         if (req.body.items && Array.isArray(req.body.items)) {
             for (let item of req.body.items) {
@@ -166,7 +167,6 @@ app.get('/api/orders', async (req, res) => {
     } catch (error) { res.status(500).json({ error: 'Erro' }); }
 });
 
-// Novas rotas para Impressão Automática
 app.get('/api/orders/pending', async (req, res) => {
     try { res.json(await Order.find({ printed: false }).sort({ date: 1 })); }
     catch (error) { res.status(500).json({ error: 'Erro' }); }

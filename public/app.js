@@ -446,19 +446,12 @@ async function finalizeTableOrder(data) {
         });
         if (!res.ok) throw new Error('Erro');
 
-        const dateStr = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR');
-        let printHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white; margin-bottom: 0;"><div style="text-align: center;"><h3>Conteiner Beer</h3><h2 style="font-size: 16px;">${data.tableName}</h2></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div><table style="width: 100%; font-size: 11px;">`;
-        data.items.forEach(item => { printHTML += `<tr><td>${item.quantity}x</td><td>${item.productName}</td><td style="text-align:right;">R$ ${(item.price * item.quantity).toFixed(2)}</td></tr>`; });
-        printHTML += `</table><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="text-align: right;"><h2 style="margin: 6px 0; font-size: 15px;">TOTAL: R$ ${data.total.toFixed(2)}</h2></div><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="font-size: 11px;"><p>Pagamento: <strong>${data.method}</strong></p><p>Data: ${dateStr}</p></div></div>`;
-        
-        document.getElementById('print-area').innerHTML = printHTML; 
         document.getElementById('pix-modal').classList.remove('active'); 
         closeTableCheckoutModal();
         currentTableData = null; 
         await fetchProducts('waiter'); 
         await fetchTablesWaiter(); 
         switchWaiterTab('mesas'); 
-        setTimeout(() => window.print(), 200);
     } catch (e) {
         alert('Erro ao registrar fechamento.');
     }
@@ -592,7 +585,9 @@ async function finalizeOrder(paymentMethod) {
     }
 }
 
-function gerarFichaHtml(nome, preco, data, extraHtml) { return `<div class="ticket"><h3>Conteiner Beer</h3><h2>${nome}</h2>${extraHtml}<h1>R$ ${preco.toFixed(2)}</h1><div class="ticket-id">${generateUniqueId()}</div><p>${data}</p></div>`; }
+function gerarFichaHtml(nome, preco, data, extraHtml) { 
+    return `<div class="ticket"><h3>Conteiner Beer</h3><h2>${nome}</h2>${extraHtml}<h1>R$ ${preco.toFixed(2)}</h1><div class="ticket-id">${generateUniqueId()}</div><p>${data}</p><p style="font-size: 9px; margin-top: 4px; text-align: center; border-top: 1px dotted #000; padding-top: 2px;">Válida somente para o dia.<br>Não fazemos devoluções.</p></div>`; 
+}
 
 // ================= REGISTRO DO SERVICE WORKER (PWA) =================
 if ('serviceWorker' in navigator) {
