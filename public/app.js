@@ -24,9 +24,8 @@ window.onload = () => {
     setInterval(checkNewOrdersForPrint, 5000);
 };
 
-// Funcao de Monitoramento Automático
+// Funcao de Monitoramento Automático com Fichas Individuais
 async function checkNewOrdersForPrint() {
-    // Só imprime se estiver na tela de Admin/Caixa
     if (!document.getElementById('admin-view').classList.contains('active')) return;
     
     try {
@@ -34,19 +33,39 @@ async function checkNewOrdersForPrint() {
         const orders = await res.json();
         
         for (const order of orders) {
-            // Imprime
             printOrderAutomatically(order);
-            // Marca como impresso no banco
             await fetch(`${API_URL}/orders/${order._id}/printed`, { method: 'PUT' });
         }
     } catch (e) { console.log('Erro na checagem de impressao', e); }
 }
 
 function printOrderAutomatically(order) {
-    let printHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white;"><div style="text-align: center;"><h3>Conteiner Beer</h3><p>PEDIDO AUTOMÁTICO</p></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div><table style="width: 100%;">`;
-    if (order.items) order.items.forEach(i => { printHTML += `<tr><td>${i.quantity}x</td><td>${i.productName}</td><td style="text-align:right;">R$ ${(i.price * i.quantity).toFixed(2)}</td></tr>`; });
-    printHTML += `</table><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="text-align: right;"><strong>TOTAL: R$ ${order.total.toFixed(2)}</strong></div><p>Pagamento: ${order.paymentMethod}</p></div>`;
+    let printHTML = ''; 
+    const dateStr = new Date(order.date).toLocaleDateString('pt-BR') + ' ' + new Date(order.date).toLocaleTimeString('pt-BR');
     
+    const retailItems = order.items ? order.items.filter(i => !i.isWholesale) : []; 
+    const wholesaleItems = order.items ? order.items.filter(i => i.isWholesale) : [];
+    
+    retailItems.forEach(item => { 
+        const tCount = item.ticketCount || 1; 
+        for (let i = 0; i < item.quantity; i++) { 
+            if (tCount === 1) { 
+                printHTML += gerarFichaHtml(item.productName, item.price, dateStr, ""); 
+            } else { 
+                for (let f = 1; f <= tCount; f++) { 
+                    printHTML += gerarFichaHtml(item.productName, item.price, dateStr, `<div style="background-color:black; color:white; margin:10px 0; padding:5px; border-radius:4px;">FRAÇÃO ${f}/${tCount}</div>`); 
+                } 
+            } 
+        } 
+    });
+
+    if (wholesaleItems.length > 0) {
+        let cupomTotal = wholesaleItems.reduce((s, i) => s + (i.price * i.quantity), 0);
+        printHTML += `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white;"><div style="text-align: center;"><h3>Conteiner Beer</h3><p>ATACADO</p></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div><table style="width: 100%;">`;
+        wholesaleItems.forEach(item => { printHTML += `<tr><td>${item.quantity}x</td><td>${item.productName}</td><td style="text-align:right;">R$ ${(item.price * item.quantity).toFixed(2)}</td></tr>`; });
+        printHTML += `</table><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="text-align: right;"><strong>TOTAL: R$ ${cupomTotal.toFixed(2)}</strong></div><p>Pagamento: ${order.paymentMethod}</p></div>`;
+    }
+
     document.getElementById('print-area').innerHTML = printHTML;
     window.print();
 }
@@ -566,18 +585,8 @@ async function finalizeOrder(paymentMethod) {
             body: JSON.stringify({ items: cart, total: total, paymentMethod: paymentMethod, waiter: 'Garçom' }) 
         });
         if (!res.ok) throw new Error('Erro');
-
-        let printHTML = ''; const dateStr = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR');
-        const retailItems = cart.filter(i => !i.isWholesale); const wholesaleItems = cart.filter(i => i.isWholesale);
-        retailItems.forEach(item => { const tCount = item.ticketCount || 1; for (let i = 0; i < item.quantity; i++) { if (tCount === 1) { printHTML += gerarFichaHtml(item.productName, item.price, dateStr, ""); } else { for (let f = 1; f <= tCount; f++) { printHTML += gerarFichaHtml(item.productName, item.price, dateStr, `<div style="background-color:black; color:white; margin:10px 0; padding:5px; border-radius:4px;">FRAÇÃO ${f}/${tCount}</div>`); } } } });
-        if (wholesaleItems.length > 0) {
-            let cupomTotal = wholesaleItems.reduce((s, i) => s + (i.price * i.quantity), 0);
-            printHTML += `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white;"><div style="text-align: center;"><h3>Conteiner Beer</h3><p>ATACADO</p></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div><table style="width: 100%;">`;
-            wholesaleItems.forEach(item => { printHTML += `<tr><td>${item.quantity}x</td><td>${item.productName}</td><td style="text-align:right;">R$ ${(item.price * item.quantity).toFixed(2)}</td></tr>`; });
-            printHTML += `</table><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="text-align: right;"><strong>TOTAL: R$ ${cupomTotal.toFixed(2)}</strong></div><p>Pagamento: ${paymentMethod}</p></div>`;
-        }
-        document.getElementById('print-area').innerHTML = printHTML; 
-        cart = []; updateCartUI(); closeCartModal(); fetchProducts('waiter'); setTimeout(() => window.print(), 200);
+        
+        cart = []; updateCartUI(); closeCartModal(); fetchProducts('waiter');
     } catch (e) {
         alert('Erro ao finalizar pedido.');
     }
