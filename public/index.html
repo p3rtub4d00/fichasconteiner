@@ -75,17 +75,36 @@
                 <section class="card">
                     <h3>Cadastrar Produto</h3>
                     <div class="form-group-stack">
-                        <input type="text" id="prod-name" placeholder="Nome (Ex: 🍺 Skol 300ml)">
+                        <label for="prod-name" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; color:#888;">Nome do Produto</label>
+                        <input type="text" id="prod-name" placeholder="Ex: 🍺 Skol 300ml">
+                        
                         <div class="form-row-2">
-                            <input type="number" id="prod-price" placeholder="Preço R$" step="0.01">
-                            <input type="number" id="prod-stock" placeholder="Estoque" step="1">
+                            <div style="width: 100%;">
+                                <label for="prod-price" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; color:#888;">Preço de Venda (R$)</label>
+                                <input type="number" id="prod-price" placeholder="0.00" step="0.01">
+                            </div>
+                            <div style="width: 100%;">
+                                <label for="prod-stock" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; color:#888;">Estoque Inicial</label>
+                                <input type="number" id="prod-stock" placeholder="0" step="1">
+                            </div>
                         </div>
+                        
                         <div class="form-row-2">
-                            <input type="number" id="prod-tickets" placeholder="Qtd Fichas" step="1" value="1">
-                            <select id="prod-category"></select>
+                            <div style="width: 100%;">
+                                <label for="prod-tickets" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; color:#888;">Qtd. de Fichas</label>
+                                <input type="number" id="prod-tickets" placeholder="1" step="1" value="1">
+                            </div>
+                            <div style="width: 100%;">
+                                <label for="prod-category" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; color:#888;">Categoria</label>
+                                <select id="prod-category"></select>
+                            </div>
                         </div>
-                        <label class="checkbox-label"><input type="checkbox" id="prod-wholesale"> Preço de ATACADO?</label>
-                        <button onclick="addProduct()" class="btn-success" style="width:100%; margin-top: 5px;">Salvar Novo Produto</button>
+                        
+                        <label class="checkbox-label" style="margin-top: 10px;">
+                            <input type="checkbox" id="prod-wholesale"> Preço de ATACADO?
+                        </label>
+                        
+                        <button onclick="addProduct()" class="btn-success" style="width:100%; margin-top: 10px;">Salvar Novo Produto</button>
                     </div>
                 </section>
             </div>
@@ -233,8 +252,50 @@
         </div>
     </div>
 
-    <div id="pix-modal" class="modal"><div class="modal-box"><h2 style="color: #0ea5e9;">Pagamento PIX</h2><div id="pix-qr-container" style="background: white; padding: 15px; border-radius: 10px; margin: 20px auto; width: fit-content; min-height: 200px;"><p style="color: black;">Gerando PIX...</p></div><p id="pix-status-text" style="color: #f59e0b; font-weight: bold; margin-bottom: 15px;">Aguardando... ⏳</p><button class="btn-danger" onclick="cancelPix()">Cancelar</button></div></div>
-    <div id="edit-prod-modal" class="modal"><div class="modal-box"><h2>Editar Produto</h2><input type="hidden" id="edit-prod-id"><input type="text" id="edit-prod-name" placeholder="Nome"><input type="number" id="edit-prod-price" placeholder="Preço" step="0.01"><input type="number" id="edit-prod-stock" placeholder="Estoque"><input type="number" id="edit-prod-tickets" placeholder="Fichas" step="1"><select id="edit-prod-category"></select><label class="checkbox-label" style="margin-top: 15px;"><input type="checkbox" id="edit-prod-wholesale"> Preço de ATACADO</label><div class="modal-actions" style="margin-top: 20px;"><button class="btn-danger" onclick="closeEditProdModal()">Cancelar</button><button class="btn-success" onclick="saveEditProduct()">Salvar</button></div></div></div>
+    <div id="pix-modal" class="modal">
+        <div class="modal-box">
+            <h2 style="color: #0ea5e9;">Pagamento PIX</h2>
+            <div id="pix-qr-container" style="background: white; padding: 15px; border-radius: 10px; margin: 20px auto; width: fit-content; min-height: 200px;">
+                <p style="color: black;">Gerando PIX...</p>
+            </div>
+            <p id="pix-status-text" style="color: #f59e0b; font-weight: bold; margin-bottom: 15px;">Aguardando... ⏳</p>
+            <button class="btn-danger" onclick="cancelPix()">Cancelar</button>
+        </div>
+    </div>
+    
+    <!-- MODAL EDITAR PRODUTO -->
+    <div id="edit-prod-modal" class="modal">
+        <div class="modal-box">
+            <h2>Editar Produto</h2>
+            <input type="hidden" id="edit-prod-id">
+            
+            <label for="edit-prod-name" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; margin-top:10px; color:#888;">Nome do Produto</label>
+            <input type="text" id="edit-prod-name" placeholder="Ex: Cerveja">
+            
+            <label for="edit-prod-price" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; margin-top:10px; color:#888;">Preço de Venda (R$)</label>
+            <input type="number" id="edit-prod-price" placeholder="0.00" step="0.01">
+            
+            <label for="edit-prod-stock" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; margin-top:10px; color:#888;">Quantidade em Estoque</label>
+            <input type="number" id="edit-prod-stock" placeholder="0">
+            
+            <label for="edit-prod-tickets" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; margin-top:10px; color:#888;">Quantas Fichas imprime? (Padrão: 1)</label>
+            <input type="number" id="edit-prod-tickets" placeholder="1" step="1">
+            
+            <label for="edit-prod-category" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; margin-top:10px; color:#888;">Categoria</label>
+            <select id="edit-prod-category"></select>
+            
+            <div style="margin-top: 15px; margin-bottom: 10px; text-align: left;">
+                <label class="checkbox-label" style="display:flex; align-items:center; gap:8px;">
+                    <input type="checkbox" id="edit-prod-wholesale"> Preço de ATACADO
+                </label>
+            </div>
+            
+            <div class="modal-actions" style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="btn-danger" style="flex: 1;" onclick="closeEditProdModal()">Cancelar</button>
+                <button class="btn-success" style="flex: 1;" onclick="saveEditProduct()">Salvar</button>
+            </div>
+        </div>
+    </div>
 
     <div id="print-area"></div>
     <script src="app.js"></script>
