@@ -13,6 +13,7 @@ let currentTableData = null;
 let salesMode = 'retail'; 
 let currentCategory = 'Todas';
 let pendingCheckoutSource = null; 
+let activeModalType = 'fiado'; // 'fiado' ou 'clube'
 
 window.onload = () => {
     applySavedTheme();
@@ -175,8 +176,8 @@ function renderAdminCustomers() {
     </li>`).join('');
 }
 
-// ================= GESTÃO DO CLUBE DO CLIENTE =================
-function openCustomerClubModal(id) {
+// ================= GESTÃO DO CLUBE DO CLIENTE & EXTRATO =================
+async function openCustomerClubModal(id) {
     const customer = allCustomers.find(c => c._id === id);
     if (!customer) return;
     
@@ -184,8 +185,36 @@ function openCustomerClubModal(id) {
     document.getElementById('modal-club-plan').value = customer.clubPlan || 'Nenhum';
     document.getElementById('modal-club-balance').value = customer.clubBalance || 0;
     document.getElementById('modal-club-customer-id').value = customer._id;
+    document.getElementById('club-history-list').innerHTML = '<p style="text-align:center; color:var(--text-muted);">Carregando extrato...</p>';
     
     document.getElementById('customer-club-modal').classList.add('active');
+
+    try {
+        const res = await fetch(`${API_URL}/customers/club-extrato/${encodeURIComponent(customer.name)}`);
+        const data = await res.json();
+        const history = data.clubHistory || [];
+
+        if (history.length === 0) {
+            document.getElementById('club-history-list').innerHTML = '<p style="text-align:center; color:var(--text-muted); font-style:italic; padding:10px;">Nenhum consumo registrado no clube ainda.</p>';
+            return;
+        }
+
+        let html = '';
+        history.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(h => {
+            const dataHora = new Date(h.date).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+            let itemsText = h.items ? h.items.map(i => `${i.quantity}x ${i.productName}`).join(', ') : 'Itens diversos';
+            html += `<li style="flex-direction: column; align-items: flex-start; padding: 8px 10px; margin-bottom: 6px; border-left: 4px solid #10b981;">
+                <div style="width: 100%; display: flex; justify-content: space-between; font-size: 13px;">
+                    <span style="color: var(--text-muted);">${dataHora}</span>
+                    <strong style="color: var(--success);">- R$ ${h.total.toFixed(2)}</strong>
+                </div>
+                <div style="font-size: 13px; margin-top: 3px; font-weight: 500;">${itemsText}</div>
+            </li>`;
+        });
+        document.getElementById('club-history-list').innerHTML = html;
+    } catch (e) {
+        document.getElementById('club-history-list').innerHTML = '<p style="text-align:center; color:var(--danger);">Erro ao carregar histórico.</p>';
+    }
 }
 
 function closeCustomerClubModal() {
@@ -583,8 +612,9 @@ async function finalizeTableOrder(data) {
 }
 
 // ================= MODAL CLIENTE (FIADO E CLUBE) =================
-function openCustomerModal(source) {
+function openCustomerModal(source, type = 'fiado') {
     pendingCheckoutSource = source; 
+    activeModalType = type;
     if (source === 'mesa') closeTableCheckoutModal(); else closeCartModal();
     
     if (allCustomers.length === 0) {
@@ -593,12 +623,29 @@ function openCustomerModal(source) {
         return;
     }
 
-    document.getElementById('customer-select-list').innerHTML = allCustomers.map(c => 
-        `<li style="cursor: pointer;" onclick="confirmFiado('${c.name}')">
-            <strong>${c.name}</strong>
-            <button class="btn-pay" style="padding: 4px 10px; font-size:12px;">Selecionar</button>
-        </li>`
-    ).join('');
+    if (activeModalType === 'clube') {
+        document.getElementById('customer-select-title').innerText = 'Abater do Clube';
+        document.getElementById('customer-select-subtitle').innerText = 'O valor será debitado do saldo de créditos do cliente.';
+        document.getElementById('customer-select-list').innerHTML = allCustomers.map(c => 
+            `<li style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="confirmCustomerAction('${c.name}')">
+                <div>
+                    <strong>${c.name}</strong><br>
+                    <small style="color:var(--primary);">Saldo: R$ ${(c.clubBalance || 0).toFixed(2)}</small>
+                </div>
+                <button class="btn-pay" style="padding: 4px 10px; font-size:12px; background:var(--success);">Debitar</button>
+            </li>`
+        ).join('');
+    } else {
+        document.getElementById('customer-select-title').innerText = 'Selecione o Cliente';
+        document.getElementById('customer-select-subtitle').innerText = 'A conta ficará pendurada (Fiado) para esta pessoa.';
+        document.getElementById('customer-select-list').innerHTML = allCustomers.map(c => 
+            `<li style="cursor: pointer;" onclick="confirmCustomerAction('${c.name}')">
+                <strong>${c.name}</strong>
+                <button class="btn-pay" style="padding: 4px 10px; font-size:12px;">Selecionar</button>
+            </li>`
+        ).join('');
+    }
+
     document.getElementById('customer-select-modal').classList.add('active');
 }
 
@@ -607,9 +654,16 @@ function closeCustomerModal() {
     if (pendingCheckoutSource === 'mesa') openTableCheckout(); else if (pendingCheckoutSource === 'caixa') openCartModal();
 }
 
-function confirmFiado(clientName) {
+function confirmCustomerAction(clientName) {
     document.getElementById('customer-select-modal').classList.remove('active');
-    const paymentMethod = `Fiado - ${clientName}`;
+    let paymentMethod = '';
+    
+    if (activeModalType === 'clube') {
+        paymentMethod = `Clube - ${clientName}`;
+    } else {
+        paymentMethod = `Fiado - ${clientName}`;
+    }
+
     if (pendingCheckoutSource === 'mesa') { processTableCheckout(paymentMethod); } 
     else { processCheckout(paymentMethod); }
 }

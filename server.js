@@ -40,8 +40,27 @@ const Customer = mongoose.model('Customer', new mongoose.Schema({
     createdAt: { type: Date, default: Date.now },
     payments: [{ amount: Number, date: { type: Date, default: Date.now } }],
     clubPlan: { type: String, default: 'Nenhum' }, 
-    clubBalance: { type: Number, default: 0 }
+    clubBalance: { type: Number, default: 0 },
+    clubHistory: [{ items: Array, total: Number, date: { type: Date, default: Date.now } }]
 }));
+
+// Função auxiliar para abater do Clube automaticamente
+async function processClubPaymentIfNeeded(paymentMethod, items, total) {
+    if (paymentMethod && paymentMethod.startsWith('Clube - ')) {
+        const clientName = paymentMethod.replace('Clube - ', '').trim();
+        const customer = await Customer.findOne({ name: clientName });
+        if (customer) {
+            customer.clubBalance -= total;
+            if (!customer.clubHistory) customer.clubHistory = [];
+            customer.clubHistory.push({
+                items: items,
+                total: total,
+                date: new Date()
+            });
+            await customer.save();
+        }
+    }
+}
 
 // ================= ROTAS DE CLIENTES E CLUBE =================
 app.get('/api/customers', async (req, res) => {
@@ -60,6 +79,15 @@ app.put('/api/customers/:id/club', async (req, res) => {
         const updated = await Customer.findByIdAndUpdate(req.params.id, { clubPlan, clubBalance }, { new: true });
         res.json(updated);
     } catch (error) { res.status(500).json({ error: 'Erro ao atualizar clube do cliente' }); }
+});
+
+app.get('/api/customers/club-extrato/:name', async (req, res) => {
+    try {
+        const customer = await Customer.findOne({ name: req.params.name });
+        res.json(customer ? { clubPlan: customer.clubPlan, clubBalance: customer.clubBalance, clubHistory: customer.clubHistory || [] } : { clubPlan: 'Nenhum', clubBalance: 0, clubHistory: [] });
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao buscar extrato do clube' });
+    }
 });
 
 app.delete('/api/customers/:id', async (req, res) => {
@@ -159,6 +187,10 @@ app.post('/api/tables/:id/checkout', async (req, res) => {
             settled: false,
             printed: false
         }).save();
+
+        // Abate do clube se necessário
+        await processClubPaymentIfNeeded(req.body.paymentMethod, req.body.items, req.body.total);
+
         if (req.body.items && Array.isArray(req.body.items)) {
             for (let item of req.body.items) {
                 if (item.id) await Product.findByIdAndUpdate(item.id, { $inc: { stock: -item.quantity } });
@@ -188,6 +220,10 @@ app.put('/api/tables/:id/clear-print', async (req, res) => {
 app.post('/api/orders', async (req, res) => {
     try {
         await new Order({ ...req.body, settled: false, printed: false }).save();
+        
+        // Abate do clube se necessário
+        await processClubPaymentIfNeeded(req.body.paymentMethod, req.body.items, req.body.total);
+
         if (req.body.items && Array.isArray(req.body.items)) {
             for (let item of req.body.items) {
                 if (item.id) await Product.findByIdAndUpdate(item.id, { $inc: { stock: -item.quantity } });

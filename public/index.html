@@ -163,26 +163,34 @@
         </div>
     </div>
 
-    <!-- MODAL GERENCIAR CLUBE DO CLIENTE -->
+    <!-- MODAL GERENCIAR CLUBE DO CLIENTE & EXTRATO -->
     <div id="customer-club-modal" class="modal">
-        <div class="modal-box" style="max-width: 400px; text-align: left;">
-            <h2 id="club-modal-name" style="color: var(--primary); margin-bottom: 10px;">Clube do Cliente</h2>
+        <div class="modal-box" style="max-width: 480px; text-align: left;">
+            <h2 id="club-modal-name" style="color: var(--primary); margin-bottom: 5px;">Clube do Cliente</h2>
+            <p id="club-modal-subtitle" style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Gerencie o plano, saldo e histórico de consumo.</p>
             
-            <label style="font-size: 12px; color: var(--text-muted);">Plano Ativo:</label>
-            <select id="modal-club-plan" style="width: 100%; margin-bottom: 15px; padding: 8px;">
-                <option value="Nenhum">Nenhum (Sem Plano)</option>
-                <option value="Bronze">Bronze (Paga R$ 150 / Ganha R$ 170)</option>
-                <option value="Prata">Prata (Paga R$ 300 / Ganha R$ 350)</option>
-                <option value="Ouro">Ouro (Paga R$ 500 / Ganha R$ 600 + 2 Porções + 40% Rollover)</option>
-            </select>
+            <div style="background: var(--bg-card); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border);">
+                <label style="font-size: 12px; color: var(--text-muted);">Plano Ativo:</label>
+                <select id="modal-club-plan" style="width: 100%; margin-bottom: 10px; padding: 8px;">
+                    <option value="Nenhum">Nenhum (Sem Plano)</option>
+                    <option value="Bronze">Bronze (Paga R$ 150 / Ganha R$ 170)</option>
+                    <option value="Prata">Prata (Paga R$ 300 / Ganha R$ 350)</option>
+                    <option value="Ouro">Ouro (Paga R$ 500 / Ganha R$ 600 + 2 Porções + 40% Rollover)</option>
+                </select>
 
-            <label style="font-size: 12px; color: var(--text-muted);">Saldo de Créditos (R$):</label>
-            <input type="number" id="modal-club-balance" step="0.01" style="width: 100%; margin-bottom: 20px; padding: 8px;">
+                <label style="font-size: 12px; color: var(--text-muted);">Saldo Atual de Créditos (R$):</label>
+                <input type="number" id="modal-club-balance" step="0.01" style="width: 100%; padding: 8px;">
+            </div>
+
+            <h3 style="font-size: 14px; margin-bottom: 5px;">Extrato de Consumo do Clube 📋</h3>
+            <div style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 8px; margin-bottom: 15px; max-height: 180px; overflow-y: auto;">
+                <ul id="club-history-list" class="list" style="margin: 0; border: none;"></ul>
+            </div>
 
             <input type="hidden" id="modal-club-customer-id">
 
             <div style="display: flex; gap: 10px;">
-                <button class="btn-success" style="flex: 1; background: var(--success);" onclick="saveCustomerClub()">Salvar Clube</button>
+                <button class="btn-success" style="flex: 1; background: var(--success);" onclick="saveCustomerClub()">Salvar Alterações</button>
                 <button class="btn-danger" style="flex: 1;" onclick="closeCustomerClubModal()">Fechar</button>
             </div>
         </div>
@@ -207,11 +215,11 @@
         </div>
     </div>
 
-    <!-- MODAL SELECIONAR CLIENTE (FIADO/CLUBE) -->
+    <!-- MODAL SELECIONAR CLIENTE (FIADO / CLUBE) -->
     <div id="customer-select-modal" class="modal">
         <div class="modal-box">
-            <h2 style="color: var(--primary);">Selecione o Cliente</h2>
-            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">A conta será associada a esta pessoa.</p>
+            <h2 style="color: var(--primary);" id="customer-select-title">Selecione o Cliente</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;" id="customer-select-subtitle">A conta será associada a esta pessoa.</p>
             <ul id="customer-select-list" class="list" style="max-height: 200px; text-align: left; margin-bottom: 15px;"></ul>
             <button class="btn-danger" style="width: 100%;" onclick="closeCustomerModal()">Cancelar</button>
         </div>
@@ -255,7 +263,8 @@
                 <button class="btn-pay" onclick="processTableCheckout('Dinheiro')">💵 Dinheiro</button>
                 <button class="btn-pay" onclick="processTableCheckout('Cartao')">💳 Cartão</button>
                 <button class="btn-pay pix-btn" onclick="processTableCheckout('Pix')">💠 PIX</button>
-                <button class="btn-pay" style="background: #f59e0b; color: white; border-color: #d97706;" onclick="openCustomerModal('mesa')">📒 Fiado/Clube</button>
+                <button class="btn-pay" style="background: #f59e0b; color: white; border-color: #d97706;" onclick="openCustomerModal('mesa', 'fiado')">📒 Fiado</button>
+                <button class="btn-pay" style="background: #10b981; color: white; border-color: #059669;" onclick="openCustomerModal('mesa', 'clube')">⭐ Clube</button>
             </div>
             <button class="btn-danger" style="margin-top: 15px; width: 100%;" onclick="closeTableCheckoutModal()">Cancelar</button>
         </div>
@@ -272,7 +281,8 @@
                 <button class="btn-pay" onclick="processCheckout('Dinheiro')">💵 Dinheiro</button>
                 <button class="btn-pay" onclick="processCheckout('Cartao')">💳 Cartão</button>
                 <button class="btn-pay pix-btn" onclick="processCheckout('Pix')">💠 PIX</button>
-                <button class="btn-pay" style="background: #f59e0b; color: white; border-color: #d97706;" onclick="openCustomerModal('caixa')">📒 Fiado/Clube</button>
+                <button class="btn-pay" style="background: #f59e0b; color: white; border-color: #d97706;" onclick="openCustomerModal('caixa', 'fiado')">📒 Pendurar (Fiado)</button>
+                <button class="btn-pay" style="background: #10b981; color: white; border-color: #059669;" onclick="openCustomerModal('caixa', 'clube')">⭐ Pagar com Clube</button>
             </div>
             <button class="btn-danger" style="margin-top: 15px;" onclick="closeCartModal()">Cancelar</button>
         </div>
