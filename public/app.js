@@ -20,21 +20,31 @@ window.onload = () => {
     if (savedRole === 'admin') { switchView('admin-view'); loadAdminData(); } 
     else if (savedRole === 'garcom') { switchView('waiter-view'); loadWaiterData(); }
     
-    // Inicia monitoramento de impressão se estiver no admin
+    // Inicia monitoramento automático de impressões (pedidos e mesas)
     setInterval(checkNewOrdersForPrint, 5000);
 };
 
-// Funcao de Monitoramento Automático com Fichas Individuais
+// Monitoramento Automático de Impressões no Computador do Caixa
 async function checkNewOrdersForPrint() {
     if (!document.getElementById('admin-view').classList.contains('active')) return;
     
     try {
-        const res = await fetch(`${API_URL}/orders/pending`);
-        const orders = await res.json();
+        // 1. Verifica pedidos pendentes
+        const resOrders = await fetch(`${API_URL}/orders/pending`);
+        const orders = await resOrders.json();
         
         for (const order of orders) {
             printOrderAutomatically(order);
             await fetch(`${API_URL}/orders/${order._id}/printed`, { method: 'PUT' });
+        }
+
+        // 2. Verifica conferências de mesa pendentes
+        const resTables = await fetch(`${API_URL}/tables/pending-prints`);
+        const tablesToPrint = await resTables.json();
+
+        for (const table of tablesToPrint) {
+            printTableConferenceAutomatically(table);
+            await fetch(`${API_URL}/tables/${table._id}/clear-print`, { method: 'PUT' });
         }
     } catch (e) { console.log('Erro na checagem de impressao', e); }
 }
@@ -66,6 +76,17 @@ function printOrderAutomatically(order) {
         printHTML += `</table><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="text-align: right;"><strong>TOTAL: R$ ${cupomTotal.toFixed(2)}</strong></div><p>Pagamento: ${order.paymentMethod}</p></div>`;
     }
 
+    document.getElementById('print-area').innerHTML = printHTML;
+    window.print();
+}
+
+function printTableConferenceAutomatically(table) {
+    let subtotal = table.items.reduce((s, i) => s + (i.price * i.quantity), 0);
+    const dateStr = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR');
+    let printHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white; margin-bottom: 0;"><div style="text-align: center;"><h3 style="font-size: 14px; margin-bottom: 2px;">Conteiner Beer</h3><p style="font-size: 11px; margin: 0; font-weight:bold;">-- CONFERÊNCIA DE MESA --</p><h2 style="font-size: 18px; margin: 4px 0;">${table.name}</h2></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div><table style="width: 100%; font-size: 11px; margin-bottom: 5px; border-collapse: collapse;"><tr><th style="text-align:left; border-bottom: 1px solid #000;">Qtd</th><th style="text-align:left; border-bottom: 1px solid #000;">Produto</th><th style="text-align:right; border-bottom: 1px solid #000;">Total</th></tr>`;
+    table.items.forEach(item => { printHTML += `<tr><td>${item.quantity}x</td><td>${item.productName}</td><td style="text-align:right;">R$ ${(item.price * item.quantity).toFixed(2)}</td></tr>`; });
+    printHTML += `</table><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="text-align: right; font-size: 14px; font-weight: bold;">Subtotal: R$ ${subtotal.toFixed(2)}</div><div style="text-align: right; font-size: 11px; margin-top: 4px;">Serviço (10%): R$ ${(subtotal*0.1).toFixed(2)}</div><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="font-size: 10px; text-align:center;"><p>${dateStr}</p></div></div>`;
+    
     document.getElementById('print-area').innerHTML = printHTML;
     window.print();
 }
@@ -391,14 +412,15 @@ function updateActiveTableFloatingBtn() {
     document.getElementById('cart-total').innerText = `R$ ${currentTableData.items.reduce((s, i) => s + (i.price * i.quantity), 0).toFixed(2)}`;
 }
 
-function printPartialTable() {
+async function printPartialTable() {
     if (!currentTableData || currentTableData.items.length === 0) return;
-    let subtotal = currentTableData.items.reduce((s, i) => s + (i.price * i.quantity), 0);
-    const dateStr = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR');
-    let printHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white; margin-bottom: 0;"><div style="text-align: center;"><h3 style="font-size: 14px; margin-bottom: 2px;">Conteiner Beer</h3><p style="font-size: 11px; margin: 0; font-weight:bold;">-- CONFERÊNCIA DE MESA --</p><h2 style="font-size: 18px; margin: 4px 0;">${currentTableData.name}</h2></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div><table style="width: 100%; font-size: 11px; margin-bottom: 5px; border-collapse: collapse;"><tr><th style="text-align:left; border-bottom: 1px solid #000;">Qtd</th><th style="text-align:left; border-bottom: 1px solid #000;">Produto</th><th style="text-align:right; border-bottom: 1px solid #000;">Total</th></tr>`;
-    currentTableData.items.forEach(item => { printHTML += `<tr><td>${item.quantity}x</td><td>${item.productName}</td><td style="text-align:right;">R$ ${(item.price * item.quantity).toFixed(2)}</td></tr>`; });
-    printHTML += `</table><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="text-align: right; font-size: 14px; font-weight: bold;">Subtotal: R$ ${subtotal.toFixed(2)}</div><div style="text-align: right; font-size: 11px; margin-top: 4px;">Serviço (10%): R$ ${(subtotal*0.1).toFixed(2)}</div><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="font-size: 10px; text-align:center;"><p>${dateStr}</p></div></div>`;
-    document.getElementById('print-area').innerHTML = printHTML; setTimeout(() => window.print(), 200);
+    try {
+        await fetch(`${API_URL}/tables/${currentTableData._id}/request-print`, { method: 'PUT' });
+        showToast('🖨️ Conferência enviada para a impressora!');
+        closeTableManageModal();
+    } catch (e) {
+        alert('Erro ao solicitar impressão da mesa.');
+    }
 }
 
 function openTableCheckout() {

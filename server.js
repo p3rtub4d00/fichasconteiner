@@ -29,7 +29,10 @@ const Order = mongoose.model('Order', new mongoose.Schema({
     printed: { type: Boolean, default: false }
 }));
 const Table = mongoose.model('Table', new mongoose.Schema({
-    name: String, status: { type: String, default: 'livre' }, items: { type: Array, default: [] }
+    name: String, 
+    status: { type: String, default: 'livre' }, 
+    items: { type: Array, default: [] },
+    needsPrint: { type: Boolean, default: false } // Controle de impressão de conferência de mesa
 }));
 const Customer = mongoose.model('Customer', new mongoose.Schema({
     name: { type: String, required: true },
@@ -143,6 +146,22 @@ app.post('/api/tables/:id/checkout', async (req, res) => {
         table.items = []; table.status = 'livre'; await table.save();
         res.json({ msg: 'Mesa fechada' });
     } catch (error) { res.status(500).json({ error: 'Erro' }); }
+});
+
+// Rotas para gerenciar a impressão remota de conferência de mesa
+app.put('/api/tables/:id/request-print', async (req, res) => {
+    try { await Table.findByIdAndUpdate(req.params.id, { needsPrint: true }); res.json({ success: true }); }
+    catch (error) { res.status(500).json({ error: 'Erro' }); }
+});
+
+app.get('/api/tables/pending-prints', async (req, res) => {
+    try { res.json(await Table.find({ needsPrint: true })); }
+    catch (error) { res.status(500).json({ error: 'Erro' }); }
+});
+
+app.put('/api/tables/:id/clear-print', async (req, res) => {
+    try { await Table.findByIdAndUpdate(req.params.id, { needsPrint: false }); res.json({ success: true }); }
+    catch (error) { res.status(500).json({ error: 'Erro' }); }
 });
 
 // ================= ROTAS DE PEDIDOS E HISTÓRICO =================
