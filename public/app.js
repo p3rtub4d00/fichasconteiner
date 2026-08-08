@@ -116,6 +116,26 @@ async function finalizeAvulsa(items, total, method) {
     }
 }
 
+// ================= EXCLUIR VENDA (PROTEGIDO POR SENHA) =================
+async function deleteOrder(orderId) {
+    const senha = prompt("Digite a senha de administrador para excluir esta venda:");
+    if (senha === null) return; // Clicou em cancelar
+    if (senha !== 'rafaelRAMOS28') {
+        return alert('Senha incorreta! Exclusão cancelada.');
+    }
+
+    if (!confirm('Deseja realmente excluir esta venda? O estoque dos produtos será estornado.')) return;
+
+    try {
+        const res = await fetch(`${API_URL}/orders/${orderId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Erro ao excluir');
+        showToast('🗑️ Venda excluída e estoque estornado!');
+        fetchHistory();
+        fetchProducts('admin');
+    } catch (e) {
+        alert('Erro ao excluir a venda.');
+    }
+}
 
 // ================= IMPRESSÃO AUTOMÁTICA (UMA POR UMA COM CORTE) =================
 async function checkNewOrdersForPrint() {
@@ -179,7 +199,6 @@ function printTicketsOneByOne(tickets, index) {
     document.getElementById('print-area').innerHTML = tickets[index];
     window.print();
     
-    // 2000ms (2 segundos) para garantir que a guilhotina física da Perto conclua o corte
     setTimeout(() => {
         printTicketsOneByOne(tickets, index + 1);
     }, 2000);
@@ -498,7 +517,16 @@ async function fetchHistory() {
     document.getElementById('admin-history-list').innerHTML = currentDayOrders.map(order => {
         totalRev += order.total; const hora = new Date(order.date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
         let itemsHTML = order.items ? order.items.map(i => `<div style="margin-bottom: 2px;">• ${i.quantity}x ${i.productName}</div>`).join('') : 'Venda antiga';
-        return `<li style="flex-direction: column; align-items: flex-start; gap: 8px;"><div style="width: 100%; display: flex; justify-content: space-between;"><div style="font-size: 14px;">${itemsHTML}</div><span style="font-weight:bold; color:var(--success); font-size: 16px;">R$ ${order.total.toFixed(2)}</span></div><div style="width: 100%; border-top: 1px solid var(--border); padding-top: 6px;"><small style="color: var(--text-muted);">${hora} - <strong>${order.paymentMethod || 'Dinheiro'}</strong></small></div></li>`;
+        return `<li style="flex-direction: column; align-items: flex-start; gap: 8px;">
+            <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 14px;">${itemsHTML}</div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-weight:bold; color:var(--success); font-size: 16px;">R$ ${order.total.toFixed(2)}</span>
+                    <button class="btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteOrder('${order._id}')">🗑️ Excluir</button>
+                </div>
+            </div>
+            <div style="width: 100%; border-top: 1px solid var(--border); padding-top: 6px;"><small style="color: var(--text-muted);">${hora} - <strong>${order.paymentMethod || 'Dinheiro'}</strong></small></div>
+        </li>`;
     }).join('') || '<p style="text-align:center; color:var(--text-muted); padding:10px;">Nenhuma venda registrada hoje.</p>';
     document.getElementById('total-revenue').innerText = `R$ ${totalRev.toFixed(2)}`;
 }
