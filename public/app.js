@@ -158,7 +158,6 @@ function printOrderAutomatically(order) {
 
     if (wholesaleItems.length > 0) {
         let cupomTotal = wholesaleItems.reduce((s, i) => s + (i.price * i.quantity), 0);
-        // Adicionado page-break-after para cortar o cupom de atacado
         printHTML += `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white; page-break-after: always; break-after: page; margin-bottom: 0;"><div style="text-align: center;"><h3>Conteiner Beer</h3><p>ATACADO</p></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div><table style="width: 100%;">`;
         wholesaleItems.forEach(item => { printHTML += `<tr><td>${item.quantity}x</td><td>${item.productName}</td><td style="text-align:right;">R$ ${(item.price * item.quantity).toFixed(2)}</td></tr>`; });
         printHTML += `</table><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="text-align: right;"><strong>TOTAL: R$ ${cupomTotal.toFixed(2)}</strong></div><p>Pagamento: ${order.paymentMethod}</p></div>`;
@@ -171,7 +170,6 @@ function printOrderAutomatically(order) {
 function printTableConferenceAutomatically(table) {
     let subtotal = table.items.reduce((s, i) => s + (i.price * i.quantity), 0);
     const dateStr = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR');
-    // Adicionado page-break-after para cortar o fechamento de mesa
     let printHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white; margin-bottom: 0; page-break-after: always; break-after: page;"><div style="text-align: center;"><h3 style="font-size: 14px; margin-bottom: 2px;">Conteiner Beer</h3><p style="font-size: 11px; margin: 0; font-weight:bold;">-- CONFERÊNCIA DE MESA --</p><h2 style="font-size: 18px; margin: 4px 0;">${table.name}</h2></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div><table style="width: 100%; font-size: 11px; margin-bottom: 5px; border-collapse: collapse;"><tr><th style="text-align:left; border-bottom: 1px solid #000;">Qtd</th><th style="text-align:left; border-bottom: 1px solid #000;">Produto</th><th style="text-align:right; border-bottom: 1px solid #000;">Total</th></tr>`;
     table.items.forEach(item => { printHTML += `<tr><td>${item.quantity}x</td><td>${item.productName}</td><td style="text-align:right;">R$ ${(item.price * item.quantity).toFixed(2)}</td></tr>`; });
     printHTML += `</table><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="text-align: right; font-size: 14px; font-weight: bold;">Subtotal: R$ ${subtotal.toFixed(2)}</div><div style="text-align: right; font-size: 11px; margin-top: 4px;">Serviço (10%): R$ ${(subtotal*0.1).toFixed(2)}</div><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="font-size: 10px; text-align:center;"><p>${dateStr}</p></div></div>`;
@@ -180,7 +178,6 @@ function printTableConferenceAutomatically(table) {
     window.print();
 }
 
-// FORMATADOR HTML DAS FICHAS COM O COMANDO DE CORTE (page-break-after: always)
 function gerarFichaHtml(nome, preco, data, extraHtml) { 
     return `<div class="ticket" style="page-break-after: always; break-after: page; margin-bottom: 0;"><h3>Conteiner Beer</h3><h2>${nome}</h2>${extraHtml}<h1>R$ ${preco.toFixed(2)}</h1><div class="ticket-id">${generateUniqueId()}</div><p>${data}</p><p style="font-size: 9px; margin-top: 4px; text-align: center; border-top: 1px dotted #000; padding-top: 2px;">Válida somente para o dia.<br>Não fazemos devoluções.</p></div>`; 
 }
@@ -215,7 +212,6 @@ function showToast(message) {
 
 function handleFloatingClick() { activeTableId ? openTableManageModal(activeTableId) : openCartModal(); }
 
-// ================= ADMIN & CLIENTES =================
 async function loadAdminData() { 
     await fetchCategories(); 
     await fetchProducts('admin'); 
@@ -272,7 +268,6 @@ function renderAdminCustomers() {
     </li>`).join('');
 }
 
-// ================= GESTÃO DO CLUBE DO CLIENTE & EXTRATO =================
 async function openCustomerClubModal(id) {
     const customer = allCustomers.find(c => c._id === id);
     if (!customer) return;
@@ -327,7 +322,6 @@ async function saveCustomerClub() {
     } catch (e) { alert('Erro ao salvar dados do clube.'); }
 }
 
-// ================= EXTRATO DE FIADO COM ABATIMENTO =================
 async function openClientDebtModal(clientName) {
     document.getElementById('debt-modal-title').innerText = `Fiado: ${clientName}`;
     document.getElementById('debt-modal-subtitle').innerText = 'Histórico de compras e pagamentos.';
@@ -504,7 +498,6 @@ function printDailyReport() {
     document.getElementById('print-area').innerHTML = reportHTML; setTimeout(() => window.print(), 200);
 }
 
-// ================= GARÇOM =================
 async function loadWaiterData() {
     const resCat = await fetch(`${API_URL}/categories`); allCategories = await resCat.json();
     document.getElementById('category-tabs').innerHTML = `<button class="tab active" onclick="filterProducts('Todas', this)">Todas</button>` + allCategories.map(c => `<button class="tab" onclick="filterProducts('${c.name}', this)">${c.name}</button>`).join('');
