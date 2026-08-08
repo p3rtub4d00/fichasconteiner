@@ -179,9 +179,10 @@ function printTicketsOneByOne(tickets, index) {
     document.getElementById('print-area').innerHTML = tickets[index];
     window.print();
     
+    // 2000ms (2 segundos) para garantir que a guilhotina física da Perto conclua o corte
     setTimeout(() => {
         printTicketsOneByOne(tickets, index + 1);
-    }, 800);
+    }, 2000);
 }
 
 function printTableConferenceAutomatically(table) {
