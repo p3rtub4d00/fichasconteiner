@@ -250,7 +250,6 @@ app.put('/api/orders/:id/printed', async (req, res) => {
     catch (error) { res.status(500).json({ error: 'Erro' }); }
 });
 
-// Rota para excluir venda e estornar o estoque
 app.delete('/api/orders/:id', async (req, res) => {
     try {
         const order = await Order.findById(req.params.id);
