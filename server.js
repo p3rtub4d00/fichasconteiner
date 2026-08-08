@@ -188,7 +188,6 @@ app.post('/api/tables/:id/checkout', async (req, res) => {
             printed: false
         }).save();
 
-        // Abate do clube se necessário
         await processClubPaymentIfNeeded(req.body.paymentMethod, req.body.items, req.body.total);
 
         if (req.body.items && Array.isArray(req.body.items)) {
@@ -221,7 +220,6 @@ app.post('/api/orders', async (req, res) => {
     try {
         await new Order({ ...req.body, settled: false, printed: false }).save();
         
-        // Abate do clube se necessário
         await processClubPaymentIfNeeded(req.body.paymentMethod, req.body.items, req.body.total);
 
         if (req.body.items && Array.isArray(req.body.items)) {
@@ -250,6 +248,27 @@ app.get('/api/orders/pending', async (req, res) => {
 app.put('/api/orders/:id/printed', async (req, res) => {
     try { await Order.findByIdAndUpdate(req.params.id, { printed: true }); res.json({ success: true }); }
     catch (error) { res.status(500).json({ error: 'Erro' }); }
+});
+
+// Rota para excluir venda e estornar o estoque
+app.delete('/api/orders/:id', async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id);
+        if (!order) return res.status(404).json({ error: 'Venda não encontrada' });
+
+        if (order.items && Array.isArray(order.items)) {
+            for (let item of order.items) {
+                if (item.id) {
+                    await Product.findByIdAndUpdate(item.id, { $inc: { stock: item.quantity } });
+                }
+            }
+        }
+
+        await Order.findByIdAndDelete(req.params.id);
+        res.json({ success: true, msg: 'Venda excluída com sucesso' });
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao excluir venda' });
+    }
 });
 
 // ================= ROTAS PIX =================
