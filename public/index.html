@@ -10,6 +10,33 @@
     <meta name="theme-color" content="#f59e0b">
     
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Estilos específicos para o novo Menu do Garçom */
+        .waiter-menu-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            padding: 20px;
+        }
+        .btn-main-menu {
+            background: var(--bg-card);
+            border: 2px solid var(--primary);
+            color: var(--text-main);
+            border-radius: 12px;
+            padding: 25px 10px;
+            font-size: 15px;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: transform 0.1s, border-color 0.2s;
+        }
+        .btn-main-menu span.icon { font-size: 32px; }
+        .btn-main-menu:active { transform: scale(0.95); }
+    </style>
 </head>
 <body>
     <!-- TELA DE LOGIN -->
@@ -42,7 +69,6 @@
                     <button onclick="printDailyReport()" class="btn-success" style="width: 100%; margin-top: 15px; font-size: 14px; padding: 12px;">🖨️ Imprimir Fechamento</button>
                 </section>
                 
-                <!-- GERENCIAR CLIENTES E CLUBE DE CRÉDITO -->
                 <section class="card">
                     <h3>Clientes & Clube de Crédito</h3>
                     <div class="form-group-inline">
@@ -62,7 +88,6 @@
                     <ul id="admin-table-list" class="list mini-list"></ul>
                 </section>
 
-                <!-- GERENCIAR CATEGORIAS -->
                 <section class="card">
                     <h3>Gerenciar Categorias</h3>
                     <div class="form-group-inline">
@@ -72,7 +97,6 @@
                     <ul id="admin-category-list" class="list mini-list"></ul>
                 </section>
                 
-                <!-- CADASTRAR PRODUTO COM LEGENDAS -->
                 <section class="card">
                     <h3>Cadastrar Produto</h3>
                     <div class="form-group-stack">
@@ -104,7 +128,6 @@
                         <label class="checkbox-label" style="margin-top: 10px;">
                             <input type="checkbox" id="prod-wholesale"> Preço de ATACADO?
                         </label>
-                        
                         <button onclick="addProduct()" class="btn-success" style="width:100%; margin-top: 10px;">Salvar Novo Produto</button>
                     </div>
                 </section>
@@ -123,46 +146,70 @@
         </main>
     </div>
 
-    <!-- TELA GARÇOM -->
+    <!-- TELA GARÇOM (REFORMULADA COM MENU) -->
     <div id="waiter-view" class="view">
-        <header style="flex-direction: column; align-items: stretch;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <h1>Atendimento</h1>
-                    <button class="theme-btn" onclick="toggleTheme()" style="padding: 6px 10px;">🌓</button>
-                </div>
-                <button onclick="logout()" class="btn-danger" style="padding: 8px 15px;">Sair</button>
+        <header style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button id="btn-waiter-back" style="display: none; background: transparent; border: 1px solid var(--border); color: var(--text-main); padding: 6px 12px; border-radius: 6px;" onclick="openWaiterMenu('home')">⬅️ Voltar</button>
+                <h1 id="waiter-header-title">Atendimento</h1>
             </div>
-            <div class="waiter-nav">
-                <button id="nav-caixa" class="nav-btn active" onclick="switchWaiterTab('caixa')">🛒 Caixa Rápido</button>
-                <button id="nav-mesas" class="nav-btn" onclick="switchWaiterTab('mesas')">🍽️ Mesas</button>
+            <div style="display: flex; gap: 10px;">
+                <button class="theme-btn" onclick="toggleTheme()" style="padding: 6px 10px;">🌓</button>
+                <button onclick="logout()" class="btn-danger" style="padding: 8px 15px;">Sair</button>
             </div>
         </header>
 
         <main>
+            <!-- BANNER DE MESA ATIVA (Aparece se estiver dentro de uma comanda) -->
             <div id="active-table-banner" style="display: none; background: #0ea5e9; color: white; padding: 12px 15px; border-radius: 8px; margin-bottom: 15px; align-items: center; justify-content: space-between;">
                 <span id="banner-table-text" style="font-weight: bold; font-size: 15px;"></span>
-                <button onclick="closeTableMode()" style="background: white; color: #0ea5e9; padding: 6px 12px; font-size: 13px; font-weight:bold;">Concluir ✔️</button>
+                <button onclick="closeTableMode()" style="background: white; color: #0ea5e9; padding: 6px 12px; font-size: 13px; font-weight:bold; border-radius:4px; border:none;">Concluir ✔️</button>
             </div>
 
-            <div id="caixa-section">
-                <div class="mode-toggle">
-                    <button id="mode-retail" class="mode-btn active" onclick="setSalesMode('retail')">🍺 Consumo Local</button>
-                    <button id="mode-wholesale" class="mode-btn" onclick="setSalesMode('wholesale')">📦 Atacado</button>
-                </div>
+            <!-- TELA 1: HOME (4 Botões) -->
+            <div id="waiter-home-section" class="waiter-menu-grid">
+                <button class="btn-main-menu" onclick="openWaiterMenu('fichas')"><span class="icon">🎟️</span> Venda Ficha</button>
+                <button class="btn-main-menu" onclick="openWaiterMenu('atacado')"><span class="icon">📦</span> Venda Atacado</button>
+                <button class="btn-main-menu" onclick="openWaiterMenu('avulsa')"><span class="icon">💰</span> Venda Avulsa</button>
+                <button class="btn-main-menu" onclick="openWaiterMenu('mesas')"><span class="icon">🍽️</span> Comandas</button>
+            </div>
+
+            <!-- TELA 2: PRODUTOS (Fichas ou Atacado) -->
+            <div id="caixa-section" style="display: none;">
                 <div id="category-tabs" class="tabs-container"></div>
-                <div class="search-container"><input type="text" id="search-input" placeholder="Buscar..." onkeyup="searchProducts()"></div>
+                <div class="search-container"><input type="text" id="search-input" placeholder="Buscar produto..." onkeyup="searchProducts()"></div>
                 <div id="waiter-product-grid" class="grid" style="padding-bottom: 80px;"></div>
             </div>
-            <div id="mesas-section" style="display: none;"><div id="waiter-tables-grid" class="grid"></div></div>
+
+            <!-- TELA 3: COMANDAS (Mesas) -->
+            <div id="mesas-section" style="display: none;">
+                <div id="waiter-tables-grid" class="grid"></div>
+            </div>
+
+            <!-- TELA 4: VENDA AVULSA -->
+            <div id="avulsa-section" style="display: none; padding: 20px;">
+                <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; text-align: center; max-width: 400px; margin: 0 auto; border: 1px solid var(--border);">
+                    <label style="display:block; color:var(--text-muted); margin-bottom:10px;">Valor da Venda Avulsa (R$)</label>
+                    <input type="number" id="avulsa-valor" placeholder="0,00" step="0.01" style="font-size: 32px; text-align: center; font-weight: bold; padding: 20px; width: 100%; box-sizing:border-box; margin-bottom: 25px; border-radius: 8px;">
+                    
+                    <h3 style="font-size: 15px; margin-bottom: 15px; color: var(--primary);">Forma de Pagamento</h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <button class="btn-pay" style="padding: 15px; font-size: 16px;" onclick="processAvulsa('Dinheiro')">💵 Dinheiro</button>
+                        <button class="btn-pay" style="padding: 15px; font-size: 16px;" onclick="processAvulsa('Cartao')">💳 Cartão</button>
+                        <button class="btn-pay pix-btn" style="padding: 15px; font-size: 16px;" onclick="processAvulsa('Pix')">💠 PIX</button>
+                    </div>
+                </div>
+            </div>
         </main>
         
+        <!-- BOTÃO FLUTUANTE DE CARRINHO (Aparece só em Fichas/Atacado/Mesa Ativa) -->
         <div id="cart-floating-btn" onclick="handleFloatingClick()">
             <div class="cart-info"><span id="cart-count">0 itens</span><strong id="cart-total">R$ 0,00</strong></div>
             <span id="cart-action-text">Ver Carrinho 🛒</span>
         </div>
     </div>
 
+    <!-- MODAIS ADMIN / MESAS / CARRINHO MANTEÚDOS INTACTOS ABAIXO -->
     <!-- MODAL GERENCIAR CLUBE DO CLIENTE & EXTRATO -->
     <div id="customer-club-modal" class="modal">
         <div class="modal-box" style="max-width: 480px; text-align: left;">
@@ -177,7 +224,6 @@
                     <option value="Prata">Prata (Paga R$ 300 / Ganha R$ 350)</option>
                     <option value="Ouro">Ouro (Paga R$ 500 / Ganha R$ 600 + 2 Porções + 40% Rollover)</option>
                 </select>
-
                 <label style="font-size: 12px; color: var(--text-muted);">Saldo Atual de Créditos (R$):</label>
                 <input type="number" id="modal-club-balance" step="0.01" style="width: 100%; padding: 8px;">
             </div>
@@ -186,9 +232,7 @@
             <div style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 8px; margin-bottom: 15px; max-height: 180px; overflow-y: auto;">
                 <ul id="club-history-list" class="list" style="margin: 0; border: none;"></ul>
             </div>
-
             <input type="hidden" id="modal-club-customer-id">
-
             <div style="display: flex; gap: 10px;">
                 <button class="btn-success" style="flex: 1; background: var(--success);" onclick="saveCustomerClub()">Salvar Alterações</button>
                 <button class="btn-danger" style="flex: 1;" onclick="closeCustomerClubModal()">Fechar</button>
@@ -196,7 +240,7 @@
         </div>
     </div>
 
-    <!-- MODAL EXTRATO DE FIADO DO CLIENTE -->
+    <!-- MODAL EXTRATO DE FIADO -->
     <div id="customer-debt-modal" class="modal">
         <div class="modal-box" style="max-width: 450px;">
             <h2 id="debt-modal-title" style="color: var(--primary); margin-bottom: 5px;">Extrato de Fiado</h2>
@@ -215,7 +259,7 @@
         </div>
     </div>
 
-    <!-- MODAL SELECIONAR CLIENTE (FIADO / CLUBE) -->
+    <!-- MODAL SELECIONAR CLIENTE -->
     <div id="customer-select-modal" class="modal">
         <div class="modal-box">
             <h2 style="color: var(--primary);" id="customer-select-title">Selecione o Cliente</h2>
@@ -273,7 +317,7 @@
     <!-- MODAL CARRINHO CAIXA RÁPIDO -->
     <div id="cart-modal" class="modal">
         <div class="modal-box cart-modal-box">
-            <h2>Carrinho (Caixa)</h2>
+            <h2>Carrinho</h2>
             <ul id="cart-items-list" class="list" style="margin: 20px 0; max-height: 250px;"></ul>
             <div class="modal-total">Total: <strong id="checkout-total">R$ 0,00</strong></div>
             <h3>Forma de Pagamento</h3>
@@ -281,8 +325,8 @@
                 <button class="btn-pay" onclick="processCheckout('Dinheiro')">💵 Dinheiro</button>
                 <button class="btn-pay" onclick="processCheckout('Cartao')">💳 Cartão</button>
                 <button class="btn-pay pix-btn" onclick="processCheckout('Pix')">💠 PIX</button>
-                <button class="btn-pay" style="background: #f59e0b; color: white; border-color: #d97706;" onclick="openCustomerModal('caixa', 'fiado')">📒 Pendurar (Fiado)</button>
-                <button class="btn-pay" style="background: #10b981; color: white; border-color: #059669;" onclick="openCustomerModal('caixa', 'clube')">⭐ Pagar com Clube</button>
+                <button class="btn-pay" style="background: #f59e0b; color: white; border-color: #d97706;" onclick="openCustomerModal('caixa', 'fiado')">📒 Fiado</button>
+                <button class="btn-pay" style="background: #10b981; color: white; border-color: #059669;" onclick="openCustomerModal('caixa', 'clube')">⭐ Clube</button>
             </div>
             <button class="btn-danger" style="margin-top: 15px;" onclick="closeCartModal()">Cancelar</button>
         </div>
@@ -304,28 +348,21 @@
         <div class="modal-box">
             <h2>Editar Produto</h2>
             <input type="hidden" id="edit-prod-id">
-            
             <label for="edit-prod-name" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; margin-top:10px; color:#888;">Nome do Produto</label>
             <input type="text" id="edit-prod-name" placeholder="Ex: Cerveja">
-            
             <label for="edit-prod-price" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; margin-top:10px; color:#888;">Preço de Venda (R$)</label>
             <input type="number" id="edit-prod-price" placeholder="0.00" step="0.01">
-            
             <label for="edit-prod-stock" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; margin-top:10px; color:#888;">Quantidade em Estoque</label>
             <input type="number" id="edit-prod-stock" placeholder="0">
-            
             <label for="edit-prod-tickets" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; margin-top:10px; color:#888;">Quantas Fichas imprime? (Padrão: 1)</label>
             <input type="number" id="edit-prod-tickets" placeholder="1" step="1">
-            
             <label for="edit-prod-category" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; margin-top:10px; color:#888;">Categoria</label>
             <select id="edit-prod-category"></select>
-            
             <div style="margin-top: 15px; margin-bottom: 10px; text-align: left;">
                 <label class="checkbox-label" style="display:flex; align-items:center; gap:8px;">
                     <input type="checkbox" id="edit-prod-wholesale"> Preço de ATACADO
                 </label>
             </div>
-            
             <div class="modal-actions" style="margin-top: 20px; display: flex; gap: 10px;">
                 <button class="btn-danger" style="flex: 1;" onclick="closeEditProdModal()">Cancelar</button>
                 <button class="btn-success" style="flex: 1;" onclick="saveEditProduct()">Salvar</button>

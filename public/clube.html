@@ -3,25 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clube VIP | Conteiner Beer</title>
-    <meta name="theme-color" content="#0B0F19">
+    <title>Clube VIP - Conteiner Beer</title>
+    <meta name="theme-color" content="#f59e0b">
+    <link rel="stylesheet" href="style.css">
     <style>
         :root {
-            --bg-base: #0B0F19;
-            --bg-card: #151C2C;
-            --bg-card-hover: #1E293B;
-            --primary: #F59E0B;
-            --primary-hover: #D97706;
-            --text-main: #F8FAFC;
-            --text-muted: #94A3B8;
-            --gold: #FBBF24;
-            --border-color: rgba(245, 158, 11, 0.2);
+            --bg-base: #0f172a;
+            --bg-card: #1e293b;
+            --primary: #f59e0b;
+            --primary-hover: #d97706;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --gold: #fbbf24;
         }
 
         body {
             background-color: var(--bg-base);
             color: var(--text-main);
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             margin: 0;
             padding: 0;
             display: flex;
@@ -32,134 +32,105 @@
 
         .club-container {
             width: 100%;
-            max-width: 440px;
-            padding: 24px 16px;
+            max-width: 480px;
+            padding: 20px;
             box-sizing: border-box;
         }
 
         .hero {
             text-align: center;
-            margin-bottom: 28px;
-        }
-
-        .badge-table {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(245, 158, 11, 0.1);
-            color: var(--primary);
-            padding: 6px 14px;
-            border-radius: 30px;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 14px;
-            border: 1px solid var(--border-color);
+            margin-bottom: 30px;
         }
 
         .hero h1 {
-            font-size: 28px;
-            font-weight: 900;
-            color: var(--text-main);
-            margin: 0 0 8px 0;
-            letter-spacing: -0.5px;
-            background: linear-gradient(135deg, #FFF 0%, var(--primary) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            font-size: 26px;
+            color: var(--primary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .hero p {
-            font-size: 13px;
+            font-size: 14px;
             color: var(--text-muted);
-            line-height: 1.6;
+            line-height: 1.5;
             margin: 0;
+        }
+
+        .badge-table {
+            display: inline-block;
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            border: 1px solid rgba(245, 158, 11, 0.3);
         }
 
         .plans-wrapper {
             display: flex;
             flex-direction: column;
-            gap: 16px;
-            margin-bottom: 24px;
+            gap: 15px;
+            margin-bottom: 30px;
         }
 
         .plan-card {
             background: var(--bg-card);
-            border-radius: 16px;
-            padding: 22px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #334155;
             position: relative;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-
-        .plan-card:hover {
-            border-color: var(--border-color);
-            transform: translateY(-2px);
+            transition: transform 0.2s, border-color 0.2s;
         }
 
         .plan-card.featured {
-            border: 2px solid var(--primary);
-            background: linear-gradient(145deg, #151C2C 0%, #201A10 100%);
-            box-shadow: 0 10px 35px rgba(245, 158, 11, 0.15);
+            border-color: var(--primary);
+            background: linear-gradient(145deg, #1e293b 0%, #261f11 100%);
+            box-shadow: 0 4px 20px rgba(245, 158, 11, 0.15);
         }
 
         .plan-badge {
             position: absolute;
-            top: -12px;
+            top: -10px;
             right: 20px;
-            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            background: var(--primary);
             color: #000;
             font-size: 10px;
-            font-weight: 800;
-            padding: 4px 12px;
-            border-radius: 20px;
+            font-weight: bold;
+            padding: 3px 10px;
+            border-radius: 10px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);
-        }
-
-        .plan-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 12px;
         }
 
         .plan-title {
             font-size: 18px;
-            font-weight: 800;
-            margin: 0;
+            font-weight: bold;
+            margin: 0 0 5px 0;
             color: var(--text-main);
         }
 
         .plan-price {
             font-size: 22px;
-            font-weight: 900;
+            font-weight: 800;
             color: var(--primary);
-        }
-
-        .plan-price span {
-            font-size: 12px;
-            color: var(--text-muted);
-            font-weight: 500;
+            margin-bottom: 12px;
         }
 
         .plan-features {
             list-style: none;
             padding: 0;
-            margin: 0 0 20px 0;
+            margin: 0 0 15px 0;
             font-size: 13px;
             color: var(--text-muted);
-            border-top: 1px solid rgba(255,255,255,0.05);
-            padding-top: 12px;
         }
 
         .plan-features li {
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
         .plan-features li strong {
@@ -169,122 +140,27 @@
         .btn-subscribe {
             display: block;
             width: 100%;
-            background: var(--bg-card-hover);
-            color: var(--text-main);
-            text-align: center;
-            padding: 12px;
-            border-radius: 10px;
-            font-weight: 700;
-            text-decoration: none;
-            font-size: 13px;
-            transition: all 0.2s;
-            box-sizing: border-box;
-            border: 1px solid rgba(255,255,255,0.1);
-            cursor: pointer;
-        }
-
-        .plan-card.featured .btn-subscribe {
             background: var(--primary);
             color: #000;
-            border: none;
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.2s;
+            box-sizing: border-box;
         }
 
         .btn-subscribe:hover {
-            background: var(--primary);
-            color: #000;
-        }
-
-        /* MODAL DE TERMOS */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(11, 15, 25, 0.85);
-            backdrop-filter: blur(8px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-            z-index: 999;
-            padding: 16px;
-            box-sizing: border-box;
-        }
-
-        .modal-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .modal-box {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            width: 100%;
-            max-width: 400px;
-            border-radius: 20px;
-            padding: 24px;
-            box-sizing: border-box;
-            transform: translateY(20px);
-            transition: transform 0.3s ease;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-        }
-
-        .modal-overlay.active .modal-box {
-            transform: translateY(0);
-        }
-
-        .modal-box h3 {
-            margin: 0 0 10px 0;
-            color: var(--primary);
-            font-size: 20px;
-        }
-
-        .terms-box {
-            background: rgba(0,0,0,0.2);
-            border-radius: 10px;
-            padding: 12px;
-            margin-bottom: 20px;
-            border-left: 3px solid var(--primary);
-            font-size: 12px;
-            color: #CBD5E1;
-            line-height: 1.5;
-            text-align: left;
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-modal-confirm {
-            flex: 1;
-            background: var(--primary);
-            color: #000;
-            border: none;
-            padding: 12px;
-            border-radius: 10px;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 13px;
-        }
-
-        .btn-modal-cancel {
-            flex: 1;
-            background: transparent;
-            color: var(--text-muted);
-            border: 1px solid rgba(255,255,255,0.1);
-            padding: 12px;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 13px;
+            background: var(--primary-hover);
         }
 
         .footer-info {
             text-align: center;
-            font-size: 11px;
+            font-size: 12px;
             color: var(--text-muted);
-            margin-top: 15px;
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -292,105 +168,57 @@
 
     <div class="club-container">
         <div class="hero">
-            <div class="badge-table">✨ Experiência Exclusiva</div>
+            <div class="badge-table">🍻 Exclusivo para Mesas</div>
             <h1>Clube Conteiner Beer</h1>
-            <p>Antecipe créditos mensais, ganhe bônus exclusivos para curtir nas mesas e garanta atendimento prioritário.</p>
+            <p>Antecipe seus créditos mensais, ganhe bônus exclusivos para consumir nas mesas e nunca fique sem sua cerveja gelada!</p>
         </div>
 
         <div class="plans-wrapper">
             
             <!-- PLANO BRONZE -->
             <div class="plan-card">
-                <div class="plan-header">
-                    <h3 class="plan-title">Plano Bronze</h3>
-                    <div class="plan-price">R$ 150 <span>/mês</span></div>
-                </div>
+                <h3 class="plan-title">Plano Bronze</h3>
+                <div class="plan-price">R$ 150 <span style="font-size:12px; color:var(--text-muted)">/mês</span></div>
                 <ul class="plan-features">
-                    <li>🎯 <strong>R$ 170,00</strong> em créditos nas mesas</li>
-                    <li>🔄 Acumula até <strong>5%</strong> do que sobrou para o mês seguinte</li>
+                    <li>✅ <strong>R$ 170,00</strong> em créditos nas mesas</li>
+                    <li>✅ Validade de consumo no mês</li>
+                    <li>✅ Grupo VIP de avisos de eventos</li>
                 </ul>
-                <button class="btn-subscribe" onclick="openModal('Bronze', 'R$ 150', 'R$ 170 em créditos', 'Permite acumular até 5% do saldo restante para o mês seguinte. Consumo restrito ao estabelecimento.')">Quero o Plano Bronze</button>
+                <a href="https://wa.me/5569999999999?text=Olá!%20Gostaria%20de%20assinar%20o%20Plano%20Bronze%20do%20Clube%20Conteiner%20Beer." class="btn-subscribe" target="_blank">Quero o Plano Bronze</a>
             </div>
 
             <!-- PLANO PRATA -->
             <div class="plan-card">
-                <div class="plan-header">
-                    <h3 class="plan-title">Plano Prata</h3>
-                    <div class="plan-price">R$ 300 <span>/mês</span></div>
-                </div>
+                <h3 class="plan-title">Plano Prata</h3>
+                <div class="plan-price">R$ 300 <span style="font-size:12px; color:var(--text-muted)">/mês</span></div>
                 <ul class="plan-features">
-                    <li>🎯 <strong>R$ 350,00</strong> em créditos nas mesas</li>
-                    <li>🍟 1 Porção de petisco cortesia por mês</li>
-                    <li>🔄 Acumula até <strong>20%</strong> do que sobrou para o mês seguinte</li>
+                    <li>✅ <strong>R$ 350,00</strong> em créditos nas mesas</li>
+                    <li>✅ 1 Porção de petisco cortesia por mês</li>
+                    <li>✅ Acumule até 20% do saldo não usado</li>
                 </ul>
-                <button class="btn-subscribe" onclick="openModal('Prata', 'R$ 300', 'R$ 350 em créditos + 1 Porção', 'Permite acumular até 20% do saldo restante para o mês seguinte. Consumo restrito ao estabelecimento.')">Quero o Plano Prata</button>
+                <a href="https://wa.me/5569999999999?text=Olá!%20Gostaria%20de%20assinar%20o%20Plano%20Prata%20do%20Clube%20Conteiner%20Beer." class="btn-subscribe" target="_blank">Quero o Plano Prata</a>
             </div>
 
             <!-- PLANO OURO -->
             <div class="plan-card featured">
-                <div class="plan-badge">Mais Vantajoso</div>
-                <div class="plan-header">
-                    <h3 class="plan-title">Plano Ouro 👑</h3>
-                    <div class="plan-price" style="color: var(--gold);">R$ 500 <span>/mês</span></div>
-                </div>
+                <div class="plan-badge">Mais Popular</div>
+                <h3 class="plan-title">Plano Ouro 👑</h3>
+                <div class="plan-price">R$ 500 <span style="font-size:12px; color:var(--text-muted)">/mês</span></div>
                 <ul class="plan-features">
-                    <li>🔥 <strong>R$ 600,00</strong> em créditos nas mesas</li>
-                    <li>🍟 <strong>2 Porções</strong> de petisco cortesia por mês</li>
-                    <li>🔄 Acumula até <strong>40%</strong> do que sobrou para o mês seguinte</li>
-                    <li>🛋️ Reserva de mesa garantida aos sábados</li>
+                    <li>⭐ <strong>R$ 600,00</strong> em créditos nas mesas</li>
+                    <li>⭐ <strong>2 Porções</strong> de petisco cortesia por mês</li>
+                    <li>⭐ <strong>40% de Rollover</strong> (saldo não usado acumula)</li>
+                    <li>⭐ Reserva de mesa garantida aos sábados</li>
                 </ul>
-                <button class="btn-subscribe" onclick="openModal('Ouro', 'R$ 500', 'R$ 600 em créditos + 2 Porções', 'Permite acumular até 40% do saldo restante para o mês seguinte. Válido exclusivamente para consumo nas mesas do bar.')" style="background: var(--gold); color: #000;">Quero o Plano Ouro VIP</button>
+                <a href="https://wa.me/5569999999999?text=Olá!%20Gostaria%20de%20assinar%20o%20Plano%20Ouro%20do%20Clube%20Conteiner%20Beer." class="btn-subscribe" target="_blank" style="background: var(--gold);">Quero o Plano Ouro VIP</a>
             </div>
 
         </div>
 
         <div class="footer-info">
-            <p>Conteiner Beer • Porto Velho/RO</p>
+            <p>Dúvidas? Chame nosso atendimento no balcão ou pelo WhatsApp.<br><strong>Conteiner Beer - Porto Velho/RO</strong></p>
         </div>
     </div>
 
-    <!-- MODAL DE AVISO E TERMOS -->
-    <div class="modal-overlay" id="termsModal">
-        <div class="modal-box">
-            <h3 id="modalPlanTitle">Resumo do Plano</h3>
-            <p id="modalPlanDesc" style="font-size: 14px; font-weight: bold; color: var(--text-main); margin-bottom: 12px;"></p>
-            
-            <div class="terms-box">
-                <strong>⚠️ Regras Importantes do Clube:</strong><br>
-                • O consumo é <strong>exclusivamente presencial</strong> (nas mesas do bar).<br>
-                • <span id="modalAccumulateText">O saldo possui regras de acúmulo conforme o plano selecionado.</span>
-            </div>
-
-            <p style="font-size: 11px; margin-bottom: 20px;">Ao prosseguir, você será direcionado para o WhatsApp oficial para concluir a ativação segura do seu plano.</p>
-
-            <div class="modal-buttons">
-                <button class="btn-modal-cancel" onclick="closeModal()">Voltar</button>
-                <button class="btn-modal-confirm" onclick="confirmRedirect()">Concordar e Ir p/ WhatsApp</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let selectedPlanName = '';
-
-        function openModal(plan, price, benefits, rules) {
-            selectedPlanName = plan;
-            document.getElementById('modalPlanTitle').innerText = `Plano ${plan} (${price})`;
-            document.getElementById('modalPlanDesc').innerText = `Benefícios: ${benefits}`;
-            document.getElementById('modalAccumulateText').innerText = rules;
-            document.getElementById('termsModal').classList.add('active');
-        }
-
-        function closeModal() {
-            document.getElementById('termsModal').classList.remove('active');
-        }
-
-        function confirmRedirect() {
-            const phone = "5569999999999"; 
-            const message = encodeURIComponent(`Olá! Gostaria de assinar o *Plano ${selectedPlanName}* do Clube Conteiner Beer.`);
-            window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
-            closeModal();
-        }
-    </script>
 </body>
 </html>

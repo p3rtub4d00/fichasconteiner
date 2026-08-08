@@ -24,22 +24,113 @@ window.onload = () => {
     setInterval(checkNewOrdersForPrint, 5000);
 };
 
+// ================= NAVEGAÇÃO DO GARÇOM (O NOVO MENU) =================
+function openWaiterMenu(menuType) {
+    // Esconde todas as seções
+    document.getElementById('waiter-home-section').style.display = 'none';
+    document.getElementById('caixa-section').style.display = 'none';
+    document.getElementById('mesas-section').style.display = 'none';
+    document.getElementById('avulsa-section').style.display = 'none';
+    
+    const btnBack = document.getElementById('btn-waiter-back');
+    const headerTitle = document.getElementById('waiter-header-title');
+
+    if (menuType === 'home') {
+        document.getElementById('waiter-home-section').style.display = 'grid';
+        btnBack.style.display = 'none';
+        headerTitle.innerText = 'Atendimento';
+        activeTableId = null; // Zera a mesa ao voltar para home
+        updateCartUI(); // Atualiza botão flutuante
+    } else {
+        btnBack.style.display = 'block';
+        if (menuType === 'fichas') {
+            salesMode = 'retail';
+            headerTitle.innerText = 'Venda Ficha';
+            document.getElementById('caixa-section').style.display = 'block';
+            applyWaiterFilters();
+        } else if (menuType === 'atacado') {
+            salesMode = 'wholesale';
+            headerTitle.innerText = 'Venda Atacado';
+            document.getElementById('caixa-section').style.display = 'block';
+            applyWaiterFilters();
+        } else if (menuType === 'mesas') {
+            headerTitle.innerText = 'Comandas';
+            document.getElementById('mesas-section').style.display = 'block';
+            fetchTablesWaiter();
+        } else if (menuType === 'avulsa') {
+            headerTitle.innerText = 'Venda Avulsa';
+            document.getElementById('avulsa-section').style.display = 'block';
+            document.getElementById('avulsa-valor').value = ''; // Limpa input
+        }
+        updateCartUI(); // Verifica se precisa mostrar o botão flutuante
+    }
+}
+
+// ================= LÓGICA DE VENDA AVULSA =================
+async function processAvulsa(method) {
+    const valorInput = document.getElementById('avulsa-valor').value;
+    const total = parseFloat(valorInput);
+    if (!total || total <= 0) return alert('Por favor, digite um valor válido maior que zero.');
+
+    // Cria um item genérico "Venda Avulsa" que o servidor vai imprimir normal (ficha)
+    const avulsaItem = { 
+        id: null, // Sem id real para não bater estoque
+        productName: 'Venda Avulsa', 
+        price: total, 
+        quantity: 1, 
+        ticketCount: 1, 
+        isWholesale: false 
+    };
+
+    if (method === 'Pix') {
+        document.getElementById('pix-modal').classList.add('active');
+        document.getElementById('pix-qr-container').innerHTML = '<p>Gerando...</p>';
+        try {
+            const res = await fetch(`${API_URL}/pix`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ total }) });
+            const pixData = await res.json();
+            document.getElementById('pix-qr-container').innerHTML = `<img src="data:image/jpeg;base64,${pixData.qr_code_base64}" style="width:100%; max-width:250px; border-radius:8px;">`;
+            pixInterval = setInterval(async () => {
+                const check = await fetch(`${API_URL}/pix/${pixData.id}`); const st = await check.json();
+                if (st.status === 'approved') { 
+                    clearInterval(pixInterval); 
+                    document.getElementById('pix-status-text').innerText = '✅ PAGO!'; 
+                    setTimeout(() => finalizeAvulsa([avulsaItem], total, 'Pix'), 1500); 
+                }
+            }, 3000);
+        } catch (e) { alert('Erro PIX'); cancelPix(); }
+    } else {
+        finalizeAvulsa([avulsaItem], total, method);
+    }
+}
+
+async function finalizeAvulsa(items, total, method) {
+    try {
+        await fetch(`${API_URL}/orders`, { 
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ items, total, paymentMethod: method, waiter: 'Garçom' }) 
+        });
+        document.getElementById('pix-modal').classList.remove('active');
+        document.getElementById('avulsa-valor').value = '';
+        showToast('✅ Venda Avulsa registrada!');
+        openWaiterMenu('home'); // Volta pro início após vender
+    } catch (e) {
+        alert('Erro ao registrar venda avulsa.');
+    }
+}
+
+
 // ================= IMPRESSÃO AUTOMÁTICA =================
 async function checkNewOrdersForPrint() {
     if (!document.getElementById('admin-view').classList.contains('active')) return;
-    
     try {
         const resOrders = await fetch(`${API_URL}/orders/pending`);
         const orders = await resOrders.json();
-        
         for (const order of orders) {
             printOrderAutomatically(order);
             await fetch(`${API_URL}/orders/${order._id}/printed`, { method: 'PUT' });
         }
-
         const resTables = await fetch(`${API_URL}/tables/pending-prints`);
         const tablesToPrint = await resTables.json();
-
         for (const table of tablesToPrint) {
             printTableConferenceAutomatically(table);
             await fetch(`${API_URL}/tables/${table._id}/clear-print`, { method: 'PUT' });
@@ -454,13 +545,11 @@ function printDailyReport() {
 async function loadWaiterData() {
     const resCat = await fetch(`${API_URL}/categories`); allCategories = await resCat.json();
     document.getElementById('category-tabs').innerHTML = `<button class="tab active" onclick="filterProducts('Todas', this)">Todas</button>` + allCategories.map(c => `<button class="tab" onclick="filterProducts('${c.name}', this)">${c.name}</button>`).join('');
-    salesMode = 'retail'; currentCategory = 'Todas';
-    document.getElementById('mode-retail').classList.add('active'); document.getElementById('mode-wholesale').classList.remove('active');
     
     await loadCustomers(); 
     await fetchProducts('waiter'); 
     await fetchTablesWaiter();
-    updateCartUI(); switchWaiterTab('caixa');
+    openWaiterMenu('home'); // Inicia sempre no novo menu do Garçom
 }
 
 async function fetchProducts(role) {
@@ -485,18 +574,6 @@ async function fetchProducts(role) {
         document.getElementById('admin-product-list').innerHTML = htmlProdutos;
     } else { 
         applyWaiterFilters(); 
-    }
-}
-
-function switchWaiterTab(tab) {
-    document.getElementById('nav-caixa').classList.toggle('active', tab === 'caixa');
-    document.getElementById('nav-mesas').classList.toggle('active', tab === 'mesas');
-    if (tab === 'caixa') {
-        document.getElementById('caixa-section').style.display = 'block'; document.getElementById('mesas-section').style.display = 'none';
-        document.getElementById('cart-floating-btn').style.display = (activeTableId || cart.length > 0) ? 'flex' : 'none';
-    } else {
-        document.getElementById('caixa-section').style.display = 'none'; document.getElementById('mesas-section').style.display = 'block';
-        document.getElementById('cart-floating-btn').style.display = 'none'; closeTableMode(); fetchTablesWaiter();
     }
 }
 
@@ -526,7 +603,8 @@ function closeTableManageModal() { document.getElementById('table-manage-modal')
 async function removeTableItem(tableId, productId) { await fetch(`${API_URL}/tables/${tableId}/remove`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({productId}) }); await fetchTablesWaiter(); openTableManageModal(tableId); }
 
 function startTableMode() {
-    activeTableId = currentTableData._id; closeTableManageModal(); switchWaiterTab('caixa');
+    activeTableId = currentTableData._id; closeTableManageModal();
+    openWaiterMenu('fichas'); // Ao adicionar na mesa, abre a lista normal de produtos
     document.getElementById('active-table-banner').style.display = 'flex'; document.getElementById('banner-table-text').innerText = `Comanda: ${currentTableData.name}`;
     const floatingBtn = document.getElementById('cart-floating-btn'); floatingBtn.classList.add('table-mode', 'active'); floatingBtn.style.display = 'flex';
     document.getElementById('cart-action-text').innerText = 'Ver Comanda 📋'; updateActiveTableFloatingBtn();
@@ -535,7 +613,8 @@ function startTableMode() {
 function closeTableMode() {
     activeTableId = null; document.getElementById('active-table-banner').style.display = 'none';
     const floatingBtn = document.getElementById('cart-floating-btn'); floatingBtn.classList.remove('table-mode');
-    document.getElementById('cart-action-text').innerText = 'Ver Carrinho 🛒'; updateCartUI(); switchWaiterTab('mesas');
+    document.getElementById('cart-action-text').innerText = 'Ver Carrinho 🛒'; updateCartUI(); 
+    openWaiterMenu('mesas');
 }
 
 function updateActiveTableFloatingBtn() {
@@ -605,7 +684,7 @@ async function finalizeTableOrder(data) {
         currentTableData = null; 
         await fetchProducts('waiter'); 
         await fetchTablesWaiter(); 
-        switchWaiterTab('mesas'); 
+        openWaiterMenu('mesas'); 
     } catch (e) {
         alert('Erro ao registrar fechamento.');
     }
@@ -657,19 +736,14 @@ function closeCustomerModal() {
 function confirmCustomerAction(clientName) {
     document.getElementById('customer-select-modal').classList.remove('active');
     let paymentMethod = '';
-    
-    if (activeModalType === 'clube') {
-        paymentMethod = `Clube - ${clientName}`;
-    } else {
-        paymentMethod = `Fiado - ${clientName}`;
-    }
+    if (activeModalType === 'clube') paymentMethod = `Clube - ${clientName}`;
+    else paymentMethod = `Fiado - ${clientName}`;
 
     if (pendingCheckoutSource === 'mesa') { processTableCheckout(paymentMethod); } 
     else { processCheckout(paymentMethod); }
 }
 
 // ================= FILTROS E CAIXA RÁPIDO =================
-function setSalesMode(mode) { salesMode = mode; document.getElementById('mode-retail').classList.toggle('active', mode === 'retail'); document.getElementById('mode-wholesale').classList.toggle('active', mode === 'wholesale'); applyWaiterFilters(); }
 function filterProducts(cat, btn) { document.querySelectorAll('.tab').forEach(b => b.classList.remove('active')); btn.classList.add('active'); currentCategory = cat; applyWaiterFilters(); }
 function searchProducts() { applyWaiterFilters(); }
 
@@ -719,10 +793,23 @@ function changeCartQtd(id, amount) {
 
 function updateCartUI() {
     if (activeTableId) return;
-    const totalItems = cart.reduce((s, i) => s + i.quantity, 0); const totalPrice = cart.reduce((s, i) => s + (i.price * i.quantity), 0);
+    
+    // Se o garçom estiver no menu home ou na venda avulsa, esconde o botão de carrinho para não confundir
+    const homeActive = document.getElementById('waiter-home-section').style.display !== 'none';
+    const avulsaActive = document.getElementById('avulsa-section').style.display !== 'none';
     const floatingBtn = document.getElementById('cart-floating-btn');
+
+    if (homeActive || avulsaActive) {
+        floatingBtn.style.display = 'none';
+        floatingBtn.classList.remove('active');
+        return;
+    }
+
+    const totalItems = cart.reduce((s, i) => s + i.quantity, 0); const totalPrice = cart.reduce((s, i) => s + (i.price * i.quantity), 0);
+    
     if (totalItems > 0) { floatingBtn.classList.add('active'); floatingBtn.style.display = 'flex'; document.getElementById('cart-count').innerText = `${totalItems} itens`; document.getElementById('cart-total').innerText = `R$ ${totalPrice.toFixed(2)}`; } 
     else { floatingBtn.classList.remove('active'); floatingBtn.style.display = 'none'; closeCartModal(); }
+    
     document.getElementById('cart-items-list').innerHTML = cart.map(item => `<li><div>${item.productName}<br><small>R$ ${item.price.toFixed(2)}</small></div><div class="cart-item-controls"><button onclick="changeCartQtd('${item.id}', -1)">-</button><span>${item.quantity}</span><button onclick="changeCartQtd('${item.id}', 1)">+</button></div></li>`).join('');
     document.getElementById('checkout-total').innerText = `R$ ${totalPrice.toFixed(2)}`;
 }
