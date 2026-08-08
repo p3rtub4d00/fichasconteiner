@@ -26,7 +26,6 @@ window.onload = () => {
 
 // ================= NAVEGAÇÃO DO GARÇOM (O NOVO MENU) =================
 function openWaiterMenu(menuType) {
-    // Esconde todas as seções
     document.getElementById('waiter-home-section').style.display = 'none';
     document.getElementById('caixa-section').style.display = 'none';
     document.getElementById('mesas-section').style.display = 'none';
@@ -39,8 +38,8 @@ function openWaiterMenu(menuType) {
         document.getElementById('waiter-home-section').style.display = 'grid';
         btnBack.style.display = 'none';
         headerTitle.innerText = 'Atendimento';
-        activeTableId = null; // Zera a mesa ao voltar para home
-        updateCartUI(); // Atualiza botão flutuante
+        activeTableId = null; 
+        updateCartUI(); 
     } else {
         btnBack.style.display = 'block';
         if (menuType === 'fichas') {
@@ -60,9 +59,9 @@ function openWaiterMenu(menuType) {
         } else if (menuType === 'avulsa') {
             headerTitle.innerText = 'Venda Avulsa';
             document.getElementById('avulsa-section').style.display = 'block';
-            document.getElementById('avulsa-valor').value = ''; // Limpa input
+            document.getElementById('avulsa-valor').value = ''; 
         }
-        updateCartUI(); // Verifica se precisa mostrar o botão flutuante
+        updateCartUI(); 
     }
 }
 
@@ -72,9 +71,8 @@ async function processAvulsa(method) {
     const total = parseFloat(valorInput);
     if (!total || total <= 0) return alert('Por favor, digite um valor válido maior que zero.');
 
-    // Cria um item genérico "Venda Avulsa" que o servidor vai imprimir normal (ficha)
     const avulsaItem = { 
-        id: null, // Sem id real para não bater estoque
+        id: null, 
         productName: 'Venda Avulsa', 
         price: total, 
         quantity: 1, 
@@ -112,14 +110,14 @@ async function finalizeAvulsa(items, total, method) {
         document.getElementById('pix-modal').classList.remove('active');
         document.getElementById('avulsa-valor').value = '';
         showToast('✅ Venda Avulsa registrada!');
-        openWaiterMenu('home'); // Volta pro início após vender
+        openWaiterMenu('home'); 
     } catch (e) {
         alert('Erro ao registrar venda avulsa.');
     }
 }
 
 
-// ================= IMPRESSÃO AUTOMÁTICA =================
+// ================= IMPRESSÃO AUTOMÁTICA (COM CORTE POR FICHA) =================
 async function checkNewOrdersForPrint() {
     if (!document.getElementById('admin-view').classList.contains('active')) return;
     try {
@@ -160,7 +158,8 @@ function printOrderAutomatically(order) {
 
     if (wholesaleItems.length > 0) {
         let cupomTotal = wholesaleItems.reduce((s, i) => s + (i.price * i.quantity), 0);
-        printHTML += `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white;"><div style="text-align: center;"><h3>Conteiner Beer</h3><p>ATACADO</p></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div><table style="width: 100%;">`;
+        // Adicionado page-break-after para cortar o cupom de atacado
+        printHTML += `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white; page-break-after: always; break-after: page; margin-bottom: 0;"><div style="text-align: center;"><h3>Conteiner Beer</h3><p>ATACADO</p></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div><table style="width: 100%;">`;
         wholesaleItems.forEach(item => { printHTML += `<tr><td>${item.quantity}x</td><td>${item.productName}</td><td style="text-align:right;">R$ ${(item.price * item.quantity).toFixed(2)}</td></tr>`; });
         printHTML += `</table><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="text-align: right;"><strong>TOTAL: R$ ${cupomTotal.toFixed(2)}</strong></div><p>Pagamento: ${order.paymentMethod}</p></div>`;
     }
@@ -172,12 +171,18 @@ function printOrderAutomatically(order) {
 function printTableConferenceAutomatically(table) {
     let subtotal = table.items.reduce((s, i) => s + (i.price * i.quantity), 0);
     const dateStr = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR');
-    let printHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white; margin-bottom: 0;"><div style="text-align: center;"><h3 style="font-size: 14px; margin-bottom: 2px;">Conteiner Beer</h3><p style="font-size: 11px; margin: 0; font-weight:bold;">-- CONFERÊNCIA DE MESA --</p><h2 style="font-size: 18px; margin: 4px 0;">${table.name}</h2></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div><table style="width: 100%; font-size: 11px; margin-bottom: 5px; border-collapse: collapse;"><tr><th style="text-align:left; border-bottom: 1px solid #000;">Qtd</th><th style="text-align:left; border-bottom: 1px solid #000;">Produto</th><th style="text-align:right; border-bottom: 1px solid #000;">Total</th></tr>`;
+    // Adicionado page-break-after para cortar o fechamento de mesa
+    let printHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white; margin-bottom: 0; page-break-after: always; break-after: page;"><div style="text-align: center;"><h3 style="font-size: 14px; margin-bottom: 2px;">Conteiner Beer</h3><p style="font-size: 11px; margin: 0; font-weight:bold;">-- CONFERÊNCIA DE MESA --</p><h2 style="font-size: 18px; margin: 4px 0;">${table.name}</h2></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div><table style="width: 100%; font-size: 11px; margin-bottom: 5px; border-collapse: collapse;"><tr><th style="text-align:left; border-bottom: 1px solid #000;">Qtd</th><th style="text-align:left; border-bottom: 1px solid #000;">Produto</th><th style="text-align:right; border-bottom: 1px solid #000;">Total</th></tr>`;
     table.items.forEach(item => { printHTML += `<tr><td>${item.quantity}x</td><td>${item.productName}</td><td style="text-align:right;">R$ ${(item.price * item.quantity).toFixed(2)}</td></tr>`; });
     printHTML += `</table><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="text-align: right; font-size: 14px; font-weight: bold;">Subtotal: R$ ${subtotal.toFixed(2)}</div><div style="text-align: right; font-size: 11px; margin-top: 4px;">Serviço (10%): R$ ${(subtotal*0.1).toFixed(2)}</div><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="font-size: 10px; text-align:center;"><p>${dateStr}</p></div></div>`;
     
     document.getElementById('print-area').innerHTML = printHTML;
     window.print();
+}
+
+// FORMATADOR HTML DAS FICHAS COM O COMANDO DE CORTE (page-break-after: always)
+function gerarFichaHtml(nome, preco, data, extraHtml) { 
+    return `<div class="ticket" style="page-break-after: always; break-after: page; margin-bottom: 0;"><h3>Conteiner Beer</h3><h2>${nome}</h2>${extraHtml}<h1>R$ ${preco.toFixed(2)}</h1><div class="ticket-id">${generateUniqueId()}</div><p>${data}</p><p style="font-size: 9px; margin-top: 4px; text-align: center; border-top: 1px dotted #000; padding-top: 2px;">Válida somente para o dia.<br>Não fazemos devoluções.</p></div>`; 
 }
 
 function toggleTheme() {
@@ -308,9 +313,7 @@ async function openCustomerClubModal(id) {
     }
 }
 
-function closeCustomerClubModal() {
-    document.getElementById('customer-club-modal').classList.remove('active');
-}
+function closeCustomerClubModal() { document.getElementById('customer-club-modal').classList.remove('active'); }
 
 async function saveCustomerClub() {
     const id = document.getElementById('modal-club-customer-id').value;
@@ -318,19 +321,10 @@ async function saveCustomerClub() {
     const clubBalance = parseFloat(document.getElementById('modal-club-balance').value) || 0;
 
     try {
-        const res = await fetch(`${API_URL}/customers/${id}/club`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ clubPlan, clubBalance })
-        });
+        const res = await fetch(`${API_URL}/customers/${id}/club`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clubPlan, clubBalance }) });
         if (!res.ok) throw new Error('Erro');
-        
-        showToast('⭐ Clube atualizado com sucesso!');
-        closeCustomerClubModal();
-        loadAdminData();
-    } catch (e) {
-        alert('Erro ao salvar dados do clube.');
-    }
+        showToast('⭐ Clube atualizado com sucesso!'); closeCustomerClubModal(); loadAdminData();
+    } catch (e) { alert('Erro ao salvar dados do clube.'); }
 }
 
 // ================= EXTRATO DE FIADO COM ABATIMENTO =================
@@ -344,7 +338,6 @@ async function openClientDebtModal(clientName) {
     try {
         const res = await fetch(`${API_URL}/customers/debt/${encodeURIComponent(clientName)}`);
         const data = await res.json();
-        
         const orders = data.orders || [];
         const payments = data.payments || [];
         
@@ -365,7 +358,6 @@ async function openClientDebtModal(clientName) {
         let history = [];
         orders.forEach(o => history.push({ type: 'compra', date: new Date(o.date), total: o.total, items: o.items }));
         payments.forEach(p => history.push({ type: 'pagamento', date: new Date(p.date), total: p.amount }));
-        
         history.sort((a, b) => b.date - a.date); 
 
         let html = `
@@ -378,57 +370,34 @@ async function openClientDebtModal(clientName) {
 
         history.forEach((h) => {
             const dataHora = h.date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-            
             if (h.type === 'pagamento') {
-                html += `<li style="flex-direction: column; align-items: flex-start; padding: 8px 10px; margin-bottom: 6px; border-left: 4px solid var(--success);">
-                    <div style="width: 100%; display: flex; justify-content: space-between; font-size: 13px;">
-                        <span style="color: var(--text-muted);">${dataHora}</span>
-                        <strong style="color: var(--success);">- R$ ${h.total.toFixed(2)} (Abatimento)</strong>
-                    </div>
-                </li>`;
+                html += `<li style="flex-direction: column; align-items: flex-start; padding: 8px 10px; margin-bottom: 6px; border-left: 4px solid var(--success);"><div style="width: 100%; display: flex; justify-content: space-between; font-size: 13px;"><span style="color: var(--text-muted);">${dataHora}</span><strong style="color: var(--success);">- R$ ${h.total.toFixed(2)} (Abatimento)</strong></div></li>`;
             } else {
                 let itemsText = h.items ? h.items.map(i => `${i.quantity}x ${i.productName}`).join(', ') : 'Itens diversos';
-                html += `<li style="flex-direction: column; align-items: flex-start; padding: 8px 10px; margin-bottom: 6px; border-left: 4px solid var(--danger);">
-                    <div style="width: 100%; display: flex; justify-content: space-between; font-size: 13px;">
-                        <span style="color: var(--text-muted);">${dataHora}</span>
-                        <strong style="color: var(--danger);">R$ ${h.total.toFixed(2)}</strong>
-                    </div>
-                    <div style="font-size: 13px; margin-top: 3px; font-weight: 500;">${itemsText}</div>
-                </li>`;
+                html += `<li style="flex-direction: column; align-items: flex-start; padding: 8px 10px; margin-bottom: 6px; border-left: 4px solid var(--danger);"><div style="width: 100%; display: flex; justify-content: space-between; font-size: 13px;"><span style="color: var(--text-muted);">${dataHora}</span><strong style="color: var(--danger);">R$ ${h.total.toFixed(2)}</strong></div><div style="font-size: 13px; margin-top: 3px; font-weight: 500;">${itemsText}</div></li>`;
             }
         });
 
         document.getElementById('debt-items-list').innerHTML = html;
         document.getElementById('debt-total-amount').innerText = `R$ ${currentDebt.toFixed(2)}`;
-    } catch (e) {
-        alert('Erro ao carregar o extrato do cliente.');
-    }
+    } catch (e) { alert('Erro ao carregar o extrato do cliente.'); }
 }
 
 async function payPartialDebt(clientName) {
     const amountInput = document.getElementById('partial-pay-amount');
     const amount = parseFloat(amountInput.value);
-    
     if (!amount || amount <= 0) return alert('Digite um valor válido para abater!');
     if (!confirm(`Confirmar abatimento de R$ ${amount.toFixed(2)} para ${clientName}?`)) return;
 
     try {
-        const res = await fetch(`${API_URL}/customers/debt/${encodeURIComponent(clientName)}/pay`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ amount })
-        });
+        const res = await fetch(`${API_URL}/customers/debt/${encodeURIComponent(clientName)}/pay`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount }) });
         if (!res.ok) throw new Error('Erro');
         showToast(`✅ R$ ${amount.toFixed(2)} abatidos com sucesso!`);
         openClientDebtModal(clientName); 
-    } catch(e) {
-        alert('Erro ao processar abatimento.');
-    }
+    } catch(e) { alert('Erro ao processar abatimento.'); }
 }
 
-function closeCustomerDebtModal() {
-    document.getElementById('customer-debt-modal').classList.remove('active');
-}
+function closeCustomerDebtModal() { document.getElementById('customer-debt-modal').classList.remove('active'); }
 
 async function settleClientDebt(clientName) {
     if (!confirm(`Deseja quitar todo o saldo restante de ${clientName}?`)) return;
@@ -436,11 +405,8 @@ async function settleClientDebt(clientName) {
         const res = await fetch(`${API_URL}/customers/debt/${encodeURIComponent(clientName)}/settle`, { method: 'POST' });
         if (!res.ok) throw new Error('Erro ao quitar conta');
         showToast(`✅ Dívida de ${clientName} quitada com sucesso!`);
-        closeCustomerDebtModal();
-        loadAdminData();
-    } catch (e) {
-        alert('Erro ao processar a quitação.');
-    }
+        closeCustomerDebtModal(); loadAdminData();
+    } catch (e) { alert('Erro ao processar a quitação.'); }
 }
 
 async function fetchCategories() {
@@ -520,17 +486,14 @@ async function fetchHistory() {
     document.getElementById('admin-history-list').innerHTML = currentDayOrders.map(order => {
         totalRev += order.total; const hora = new Date(order.date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
         let itemsHTML = order.items ? order.items.map(i => `<div style="margin-bottom: 2px;">• ${i.quantity}x ${i.productName}</div>`).join('') : 'Venda antiga';
-        return `<li style="flex-direction: column; align-items: flex-start; gap: 8px;">
-            <div style="width: 100%; display: flex; justify-content: space-between;"><div style="font-size: 14px;">${itemsHTML}</div><span style="font-weight:bold; color:var(--success); font-size: 16px;">R$ ${order.total.toFixed(2)}</span></div>
-            <div style="width: 100%; border-top: 1px solid var(--border); padding-top: 6px;"><small style="color: var(--text-muted);">${hora} - <strong>${order.paymentMethod || 'Dinheiro'}</strong></small></div>
-        </li>`;
+        return `<li style="flex-direction: column; align-items: flex-start; gap: 8px;"><div style="width: 100%; display: flex; justify-content: space-between;"><div style="font-size: 14px;">${itemsHTML}</div><span style="font-weight:bold; color:var(--success); font-size: 16px;">R$ ${order.total.toFixed(2)}</span></div><div style="width: 100%; border-top: 1px solid var(--border); padding-top: 6px;"><small style="color: var(--text-muted);">${hora} - <strong>${order.paymentMethod || 'Dinheiro'}</strong></small></div></li>`;
     }).join('') || '<p style="text-align:center; color:var(--text-muted); padding:10px;">Nenhuma venda registrada hoje.</p>';
     document.getElementById('total-revenue').innerText = `R$ ${totalRev.toFixed(2)}`;
 }
 
 function printDailyReport() {
     if (!currentDayOrders || currentDayOrders.length === 0) return alert('Sem vendas!');
-    let totalRev = 0; let reportHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white;"><div style="text-align: center;"><h3>Conteiner Beer</h3><p>--- FECHAMENTO ---</p></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div>`;
+    let totalRev = 0; let reportHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white; page-break-after: always; break-after: page; margin-bottom: 0;"><div style="text-align: center;"><h3>Conteiner Beer</h3><p>--- FECHAMENTO ---</p></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div>`;
     currentDayOrders.forEach((order, index) => {
         totalRev += order.total; const hora = new Date(order.date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
         reportHTML += `<div style="margin-bottom: 5px;"><strong>#${index + 1} (${hora}) - ${order.paymentMethod}</strong><br>`;
@@ -549,7 +512,7 @@ async function loadWaiterData() {
     await loadCustomers(); 
     await fetchProducts('waiter'); 
     await fetchTablesWaiter();
-    openWaiterMenu('home'); // Inicia sempre no novo menu do Garçom
+    openWaiterMenu('home'); 
 }
 
 async function fetchProducts(role) {
@@ -557,20 +520,10 @@ async function fetchProducts(role) {
     
     if (role === 'admin') {
         const totalEstoque = allProducts.reduce((acc, p) => acc + (p.price * p.stock), 0);
-        
-        let htmlProdutos = `<li style="background: var(--primary); color: white; justify-content: center; font-weight: bold; border-radius: 6px; margin-bottom: 10px;">
-            Valor em Estoque: R$ ${totalEstoque.toFixed(2)}
-        </li>`;
-
+        let htmlProdutos = `<li style="background: var(--primary); color: white; justify-content: center; font-weight: bold; border-radius: 6px; margin-bottom: 10px;">Valor em Estoque: R$ ${totalEstoque.toFixed(2)}</li>`;
         htmlProdutos += allProducts.map(p => {
-            return `<li><div><strong>${p.name}</strong> ${p.isWholesale?'<span class="badge-atacado">ATACADO</span>':''}<br><small>Estoque: ${p.stock}</small></div>
-            <div style="display:flex; gap:5px; align-items:center;">
-                <span>R$ ${p.price.toFixed(2)}</span>
-                <button class="btn-pay" style="margin:0; padding:4px 8px; font-size:12px; background:var(--primary);" onclick="openEditProdModal('${p._id}')">✏️</button>
-                <button class="btn-danger" style="margin:0; padding:4px 8px;" onclick="deleteProduct('${p._id}')">X</button>
-            </div></li>`;
+            return `<li><div><strong>${p.name}</strong> ${p.isWholesale?'<span class="badge-atacado">ATACADO</span>':''}<br><small>Estoque: ${p.stock}</small></div><div style="display:flex; gap:5px; align-items:center;"><span>R$ ${p.price.toFixed(2)}</span><button class="btn-pay" style="margin:0; padding:4px 8px; font-size:12px; background:var(--primary);" onclick="openEditProdModal('${p._id}')">✏️</button><button class="btn-danger" style="margin:0; padding:4px 8px;" onclick="deleteProduct('${p._id}')">X</button></div></li>`;
         }).join('');
-        
         document.getElementById('admin-product-list').innerHTML = htmlProdutos;
     } else { 
         applyWaiterFilters(); 
@@ -581,9 +534,7 @@ async function fetchTablesWaiter() {
     const res = await fetch(`${API_URL}/tables`); allTables = await res.json();
     document.getElementById('waiter-tables-grid').innerHTML = allTables.map(t => {
         const isLivre = t.status === 'livre'; const total = t.items ? t.items.reduce((s, i) => s + (i.price * i.quantity), 0) : 0;
-        return `<div class="table-item ${t.status}" onclick="openTableManageModal('${t._id}')">
-            <strong>${t.name}</strong><small>${isLivre ? 'LIVRE' : 'OCUPADA'}</small>${!isLivre ? `<div style="margin-top:5px; font-size: 14px;">R$ ${total.toFixed(2)}</div>` : ''}
-        </div>`;
+        return `<div class="table-item ${t.status}" onclick="openTableManageModal('${t._id}')"><strong>${t.name}</strong><small>${isLivre ? 'LIVRE' : 'OCUPADA'}</small>${!isLivre ? `<div style="margin-top:5px; font-size: 14px;">R$ ${total.toFixed(2)}</div>` : ''}</div>`;
     }).join('');
 }
 
@@ -604,7 +555,7 @@ async function removeTableItem(tableId, productId) { await fetch(`${API_URL}/tab
 
 function startTableMode() {
     activeTableId = currentTableData._id; closeTableManageModal();
-    openWaiterMenu('fichas'); // Ao adicionar na mesa, abre a lista normal de produtos
+    openWaiterMenu('fichas'); 
     document.getElementById('active-table-banner').style.display = 'flex'; document.getElementById('banner-table-text').innerText = `Comanda: ${currentTableData.name}`;
     const floatingBtn = document.getElementById('cart-floating-btn'); floatingBtn.classList.add('table-mode', 'active'); floatingBtn.style.display = 'flex';
     document.getElementById('cart-action-text').innerText = 'Ver Comanda 📋'; updateActiveTableFloatingBtn();
@@ -629,9 +580,7 @@ async function printPartialTable() {
         await fetch(`${API_URL}/tables/${currentTableData._id}/request-print`, { method: 'PUT' });
         showToast('🖨️ Conferência enviada para a impressora!');
         closeTableManageModal();
-    } catch (e) {
-        alert('Erro ao solicitar impressão da mesa.');
-    }
+    } catch (e) { alert('Erro ao solicitar impressão da mesa.'); }
 }
 
 function openTableCheckout() {
@@ -673,65 +622,37 @@ async function processTableCheckout(method) {
 
 async function finalizeTableOrder(data) {
     try {
-        const res = await fetch(`${API_URL}/tables/${currentTableData._id}/checkout`, { 
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ paymentMethod: data.method, total: data.total, items: data.items, waiter: 'Garçom' }) 
-        });
+        const res = await fetch(`${API_URL}/tables/${currentTableData._id}/checkout`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paymentMethod: data.method, total: data.total, items: data.items, waiter: 'Garçom' }) });
         if (!res.ok) throw new Error('Erro');
-
         document.getElementById('pix-modal').classList.remove('active'); 
         closeTableCheckoutModal();
         currentTableData = null; 
         await fetchProducts('waiter'); 
         await fetchTablesWaiter(); 
         openWaiterMenu('mesas'); 
-    } catch (e) {
-        alert('Erro ao registrar fechamento.');
-    }
+    } catch (e) { alert('Erro ao registrar fechamento.'); }
 }
 
-// ================= MODAL CLIENTE (FIADO E CLUBE) =================
 function openCustomerModal(source, type = 'fiado') {
     pendingCheckoutSource = source; 
     activeModalType = type;
     if (source === 'mesa') closeTableCheckoutModal(); else closeCartModal();
     
-    if (allCustomers.length === 0) {
-        alert("Nenhum cliente cadastrado! Cadastre no Painel Admin.");
-        source === 'mesa' ? openTableCheckout() : openCartModal();
-        return;
-    }
+    if (allCustomers.length === 0) { alert("Nenhum cliente cadastrado! Cadastre no Painel Admin."); source === 'mesa' ? openTableCheckout() : openCartModal(); return; }
 
     if (activeModalType === 'clube') {
         document.getElementById('customer-select-title').innerText = 'Abater do Clube';
         document.getElementById('customer-select-subtitle').innerText = 'O valor será debitado do saldo de créditos do cliente.';
-        document.getElementById('customer-select-list').innerHTML = allCustomers.map(c => 
-            `<li style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="confirmCustomerAction('${c.name}')">
-                <div>
-                    <strong>${c.name}</strong><br>
-                    <small style="color:var(--primary);">Saldo: R$ ${(c.clubBalance || 0).toFixed(2)}</small>
-                </div>
-                <button class="btn-pay" style="padding: 4px 10px; font-size:12px; background:var(--success);">Debitar</button>
-            </li>`
-        ).join('');
+        document.getElementById('customer-select-list').innerHTML = allCustomers.map(c => `<li style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="confirmCustomerAction('${c.name}')"><div><strong>${c.name}</strong><br><small style="color:var(--primary);">Saldo: R$ ${(c.clubBalance || 0).toFixed(2)}</small></div><button class="btn-pay" style="padding: 4px 10px; font-size:12px; background:var(--success);">Debitar</button></li>`).join('');
     } else {
         document.getElementById('customer-select-title').innerText = 'Selecione o Cliente';
         document.getElementById('customer-select-subtitle').innerText = 'A conta ficará pendurada (Fiado) para esta pessoa.';
-        document.getElementById('customer-select-list').innerHTML = allCustomers.map(c => 
-            `<li style="cursor: pointer;" onclick="confirmCustomerAction('${c.name}')">
-                <strong>${c.name}</strong>
-                <button class="btn-pay" style="padding: 4px 10px; font-size:12px;">Selecionar</button>
-            </li>`
-        ).join('');
+        document.getElementById('customer-select-list').innerHTML = allCustomers.map(c => `<li style="cursor: pointer;" onclick="confirmCustomerAction('${c.name}')"><strong>${c.name}</strong><button class="btn-pay" style="padding: 4px 10px; font-size:12px;">Selecionar</button></li>`).join('');
     }
-
     document.getElementById('customer-select-modal').classList.add('active');
 }
 
-function closeCustomerModal() {
-    document.getElementById('customer-select-modal').classList.remove('active');
-    if (pendingCheckoutSource === 'mesa') openTableCheckout(); else if (pendingCheckoutSource === 'caixa') openCartModal();
-}
+function closeCustomerModal() { document.getElementById('customer-select-modal').classList.remove('active'); if (pendingCheckoutSource === 'mesa') openTableCheckout(); else if (pendingCheckoutSource === 'caixa') openCartModal(); }
 
 function confirmCustomerAction(clientName) {
     document.getElementById('customer-select-modal').classList.remove('active');
@@ -743,7 +664,6 @@ function confirmCustomerAction(clientName) {
     else { processCheckout(paymentMethod); }
 }
 
-// ================= FILTROS E CAIXA RÁPIDO =================
 function filterProducts(cat, btn) { document.querySelectorAll('.tab').forEach(b => b.classList.remove('active')); btn.classList.add('active'); currentCategory = cat; applyWaiterFilters(); }
 function searchProducts() { applyWaiterFilters(); }
 
@@ -760,15 +680,10 @@ function applyWaiterFilters() {
 function renderWaiterGrid(products) {
     if (products.length === 0) { document.getElementById('waiter-product-grid').innerHTML = `<p style="grid-column: 1/-1; text-align: center;">Nenhum produto.</p>`; return; }
     document.getElementById('waiter-product-grid').innerHTML = products.map(p => {
-        const isOutOfStock = p.stock <= 0;
-        const isLowStock = p.stock > 0 && p.stock <= 5;
+        const isOutOfStock = p.stock <= 0; const isLowStock = p.stock > 0 && p.stock <= 5;
         let classes = 'grid-item';
-        if (isOutOfStock) classes += ' out-of-stock';
-        else if (isLowStock) classes += ' low-stock';
-
-        return `<div class="${classes}" onclick="${isOutOfStock ? '' : `addToCart('${p._id}')`}">
-            <strong>${p.name}</strong><br><span>R$ ${p.price.toFixed(2)}</span><small>Estoque: ${p.stock}</small>
-        </div>`;
+        if (isOutOfStock) classes += ' out-of-stock'; else if (isLowStock) classes += ' low-stock';
+        return `<div class="${classes}" onclick="${isOutOfStock ? '' : `addToCart('${p._id}')`}"><strong>${p.name}</strong><br><span>R$ ${p.price.toFixed(2)}</span><small>Estoque: ${p.stock}</small></div>`;
     }).join('');
 }
 
@@ -793,17 +708,11 @@ function changeCartQtd(id, amount) {
 
 function updateCartUI() {
     if (activeTableId) return;
-    
-    // Se o garçom estiver no menu home ou na venda avulsa, esconde o botão de carrinho para não confundir
     const homeActive = document.getElementById('waiter-home-section').style.display !== 'none';
     const avulsaActive = document.getElementById('avulsa-section').style.display !== 'none';
     const floatingBtn = document.getElementById('cart-floating-btn');
 
-    if (homeActive || avulsaActive) {
-        floatingBtn.style.display = 'none';
-        floatingBtn.classList.remove('active');
-        return;
-    }
+    if (homeActive || avulsaActive) { floatingBtn.style.display = 'none'; floatingBtn.classList.remove('active'); return; }
 
     const totalItems = cart.reduce((s, i) => s + i.quantity, 0); const totalPrice = cart.reduce((s, i) => s + (i.price * i.quantity), 0);
     
@@ -839,23 +748,12 @@ function generateUniqueId() { return Math.random().toString(36).substring(2, 8).
 async function finalizeOrder(paymentMethod) {
     try {
         const total = cart.reduce((s, i) => s + (i.price * i.quantity), 0);
-        const res = await fetch(`${API_URL}/orders`, { 
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ items: cart, total: total, paymentMethod: paymentMethod, waiter: 'Garçom' }) 
-        });
+        const res = await fetch(`${API_URL}/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: cart, total: total, paymentMethod: paymentMethod, waiter: 'Garçom' }) });
         if (!res.ok) throw new Error('Erro');
-        
         cart = []; updateCartUI(); closeCartModal(); fetchProducts('waiter');
-    } catch (e) {
-        alert('Erro ao finalizar pedido.');
-    }
+    } catch (e) { alert('Erro ao finalizar pedido.'); }
 }
 
-function gerarFichaHtml(nome, preco, data, extraHtml) { 
-    return `<div class="ticket"><h3>Conteiner Beer</h3><h2>${nome}</h2>${extraHtml}<h1>R$ ${preco.toFixed(2)}</h1><div class="ticket-id">${generateUniqueId()}</div><p>${data}</p><p style="font-size: 9px; margin-top: 4px; text-align: center; border-top: 1px dotted #000; padding-top: 2px;">Válida somente para o dia.<br>Não fazemos devoluções.</p></div>`; 
-}
-
-// ================= REGISTRO DO SERVICE WORKER (PWA) =================
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
