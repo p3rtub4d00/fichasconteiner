@@ -119,7 +119,7 @@ async function finalizeAvulsa(items, total, method) {
 // ================= EXCLUIR VENDA (PROTEGIDO POR SENHA) =================
 async function deleteOrder(orderId) {
     const senha = prompt("Digite a senha de administrador para excluir esta venda:");
-    if (senha === null) return; // Clicou em cancelar
+    if (senha === null) return;
     if (senha !== 'rafaelRAMOS28') {
         return alert('Senha incorreta! Exclusão cancelada.');
     }
@@ -199,6 +199,7 @@ function printTicketsOneByOne(tickets, index) {
     document.getElementById('print-area').innerHTML = tickets[index];
     window.print();
     
+    // 2000ms (2 segundos) para garantir que a guilhotina física da Perto conclua o corte
     setTimeout(() => {
         printTicketsOneByOne(tickets, index + 1);
     }, 2000);
@@ -206,10 +207,48 @@ function printTicketsOneByOne(tickets, index) {
 
 function printTableConferenceAutomatically(table) {
     let subtotal = table.items.reduce((s, i) => s + (i.price * i.quantity), 0);
+    let taxaServico = subtotal * 0.10;
+    let totalComTaxa = subtotal + taxaServico;
     const dateStr = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR');
-    let printHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white; margin-bottom: 0; page-break-after: always; break-after: page;"><div style="text-align: center;"><h3 style="font-size: 14px; margin-bottom: 2px;">Conteiner Beer</h3><p style="font-size: 11px; margin: 0; font-weight:bold;">-- CONFERÊNCIA DE MESA --</p><h2 style="font-size: 18px; margin: 4px 0;">${table.name}</h2></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div><table style="width: 100%; font-size: 11px; margin-bottom: 5px; border-collapse: collapse;"><tr><th style="text-align:left; border-bottom: 1px solid #000;">Qtd</th><th style="text-align:left; border-bottom: 1px solid #000;">Produto</th><th style="text-align:right; border-bottom: 1px solid #000;">Total</th></tr>`;
-    table.items.forEach(item => { printHTML += `<tr><td>${item.quantity}x</td><td>${item.productName}</td><td style="text-align:right;">R$ ${(item.price * item.quantity).toFixed(2)}</td></tr>`; });
-    printHTML += `</table><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="text-align: right; font-size: 14px; font-weight: bold;">Subtotal: R$ ${subtotal.toFixed(2)}</div><div style="text-align: right; font-size: 11px; margin-top: 4px;">Serviço (10%): R$ ${(subtotal*0.1).toFixed(2)}</div><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="font-size: 10px; text-align:center;"><p>${dateStr}</p></div></div>`;
+    
+    let printHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white; margin-bottom: 0; page-break-after: always; break-after: page;">
+        <div style="text-align: center;">
+            <h3 style="font-size: 14px; margin-bottom: 2px;">Conteiner Beer</h3>
+            <p style="font-size: 11px; margin: 0; font-weight:bold;">-- CONFERÊNCIA DE MESA --</p>
+            <h2 style="font-size: 18px; margin: 4px 0;">${table.name}</h2>
+        </div>
+        <div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div>
+        <table style="width: 100%; font-size: 11px; margin-bottom: 5px; border-collapse: collapse;">
+            <tr>
+                <th style="text-align:left; border-bottom: 1px solid #000;">Qtd</th>
+                <th style="text-align:left; border-bottom: 1px solid #000;">Produto</th>
+                <th style="text-align:right; border-bottom: 1px solid #000;">Total</th>
+            </tr>`;
+            
+    table.items.forEach(item => { 
+        printHTML += `<tr><td>${item.quantity}x</td><td>${item.productName}</td><td style="text-align:right;">R$ ${(item.price * item.quantity).toFixed(2)}</td></tr>`; 
+    });
+    
+    printHTML += `</table>
+        <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
+            <span>Subtotal:</span>
+            <span>R$ ${subtotal.toFixed(2)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+            <span>Taxa de Serviço (10%):</span>
+            <span>R$ ${taxaServico.toFixed(2)}</span>
+        </div>
+        <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
+        <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-bottom: 6px;">
+            <span>TOTAL GERAL:</span>
+            <span>R$ ${totalComTaxa.toFixed(2)}</span>
+        </div>
+        <div style="text-align: center; font-size: 10px; margin-top: 6px; border-top: 1px dotted #000; padding-top: 4px;">
+            <p style="margin: 0; font-weight: bold;">* Taxa de serviço opcional *</p>
+            <p style="margin: 4px 0 0 0;">${dateStr}</p>
+        </div>
+    </div>`;
     
     document.getElementById('print-area').innerHTML = printHTML;
     window.print();
