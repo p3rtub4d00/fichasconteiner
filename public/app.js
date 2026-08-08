@@ -117,7 +117,7 @@ async function finalizeAvulsa(items, total, method) {
 }
 
 
-// ================= IMPRESSÃO AUTOMÁTICA (COM CORTE POR FICHA) =================
+// ================= IMPRESSÃO AUTOMÁTICA (UMA POR UMA COM CORTE) =================
 async function checkNewOrdersForPrint() {
     if (!document.getElementById('admin-view').classList.contains('active')) return;
     try {
@@ -137,20 +137,21 @@ async function checkNewOrdersForPrint() {
 }
 
 function printOrderAutomatically(order) {
-    let printHTML = ''; 
     const dateStr = new Date(order.date).toLocaleDateString('pt-BR') + ' ' + new Date(order.date).toLocaleTimeString('pt-BR');
     
     const retailItems = order.items ? order.items.filter(i => !i.isWholesale) : []; 
     const wholesaleItems = order.items ? order.items.filter(i => i.isWholesale) : [];
     
+    let ticketsToPrint = [];
+
     retailItems.forEach(item => { 
         const tCount = item.ticketCount || 1; 
         for (let i = 0; i < item.quantity; i++) { 
             if (tCount === 1) { 
-                printHTML += gerarFichaHtml(item.productName, item.price, dateStr, ""); 
+                ticketsToPrint.push(gerarFichaHtml(item.productName, item.price, dateStr, "")); 
             } else { 
                 for (let f = 1; f <= tCount; f++) { 
-                    printHTML += gerarFichaHtml(item.productName, item.price, dateStr, `<div style="background-color:black; color:white; margin:10px 0; padding:5px; border-radius:4px;">FRAÇÃO ${f}/${tCount}</div>`); 
+                    ticketsToPrint.push(gerarFichaHtml(item.productName, item.price, dateStr, `<div style="background-color:black; color:white; margin:10px 0; padding:5px; border-radius:4px;">FRAÇÃO ${f}/${tCount}</div>`)); 
                 } 
             } 
         } 
@@ -158,13 +159,29 @@ function printOrderAutomatically(order) {
 
     if (wholesaleItems.length > 0) {
         let cupomTotal = wholesaleItems.reduce((s, i) => s + (i.price * i.quantity), 0);
-        printHTML += `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white; page-break-after: always; break-after: page; margin-bottom: 0;"><div style="text-align: center;"><h3>Conteiner Beer</h3><p>ATACADO</p></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div><table style="width: 100%;">`;
-        wholesaleItems.forEach(item => { printHTML += `<tr><td>${item.quantity}x</td><td>${item.productName}</td><td style="text-align:right;">R$ ${(item.price * item.quantity).toFixed(2)}</td></tr>`; });
-        printHTML += `</table><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="text-align: right;"><strong>TOTAL: R$ ${cupomTotal.toFixed(2)}</strong></div><p>Pagamento: ${order.paymentMethod}</p></div>`;
+        let atacadoHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white;"><div style="text-align: center;"><h3>Conteiner Beer</h3><p>ATACADO</p></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div><table style="width: 100%;">`;
+        wholesaleItems.forEach(item => { atacadoHTML += `<tr><td>${item.quantity}x</td><td>${item.productName}</td><td style="text-align:right;">R$ ${(item.price * item.quantity).toFixed(2)}</td></tr>`; });
+        atacadoHTML += `</table><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="text-align: right;"><strong>TOTAL: R$ ${cupomTotal.toFixed(2)}</strong></div><p>Pagamento: ${order.paymentMethod}</p></div>`;
+        ticketsToPrint.push(atacadoHTML);
     }
 
-    document.getElementById('print-area').innerHTML = printHTML;
+    if (ticketsToPrint.length > 0) {
+        printTicketsOneByOne(ticketsToPrint, 0);
+    }
+}
+
+function printTicketsOneByOne(tickets, index) {
+    if (index >= tickets.length) {
+        document.getElementById('print-area').innerHTML = ''; 
+        return; 
+    }
+    
+    document.getElementById('print-area').innerHTML = tickets[index];
     window.print();
+    
+    setTimeout(() => {
+        printTicketsOneByOne(tickets, index + 1);
+    }, 800);
 }
 
 function printTableConferenceAutomatically(table) {
