@@ -17,7 +17,10 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/bar-pdv', {
 }).then(() => console.log('MongoDB Conectado')).catch(err => console.log(err));
 
 // ================= MODELOS =================
-const Category = mongoose.model('Category', new mongoose.Schema({ name: String }));
+const Category = mongoose.model('Category', new mongoose.Schema({ 
+    name: String, 
+    showOnline: { type: Boolean, default: true } // Novo: se aparece no catálogo online
+}));
 const Product = mongoose.model('Product', new mongoose.Schema({ 
     name: String, price: Number, category: String, stock: { type: Number, default: 0 },
     ticketCount: { type: Number, default: 1 }, isWholesale: { type: Boolean, default: false } 
@@ -142,6 +145,10 @@ app.post('/api/customers/debt/:name/settle', async (req, res) => {
 // ================= ROTAS DE CATEGORIAS =================
 app.get('/api/categories', async (req, res) => res.json(await Category.find()));
 app.post('/api/categories', async (req, res) => res.json(await new Category(req.body).save()));
+app.put('/api/categories/:id', async (req, res) => {
+    try { res.json(await Category.findByIdAndUpdate(req.params.id, req.body, { new: true })); }
+    catch (e) { res.status(500).json({ error: 'Erro ao atualizar categoria' }); }
+});
 app.delete('/api/categories/:id', async (req, res) => { await Category.findByIdAndDelete(req.params.id); res.json({ msg: 'OK' }); });
 
 // ================= ROTAS DE PRODUTOS =================
@@ -255,14 +262,12 @@ app.put('/api/orders/:id/printed', async (req, res) => {
     catch (error) { res.status(500).json({ error: 'Erro' }); }
 });
 
-// NOVA ROTA: Confirmar pagamento de entregas pendentes
 app.put('/api/orders/:id/confirm-payment', async (req, res) => {
     try {
         const order = await Order.findById(req.params.id);
         if (!order) return res.status(404).json({ error: 'Pedido não encontrado' });
         
-        // Remove a string "Na Entrega" e insere a forma de pagamento real informada
-        order.paymentMethod = order.paymentMethod.replace('Na Entrega', `Recebido: ${req.body.method}`);
+        order.paymentMethod = order.paymentMethod.replace('Pendente (Aguardando Confirmação)', `Recebido: ${req.body.method}`);
         await order.save();
         
         res.json({ success: true, msg: 'Pagamento confirmado!' });

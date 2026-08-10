@@ -1,4 +1,4 @@
-const API_URL = '/api';
+const API_URL =[cite: 2] '/api';
 
 let catalog = [];
 let cart = [];
@@ -17,8 +17,11 @@ async function fetchCategories() {
         allCategories = await res.json();
         const tabs = document.getElementById('category-tabs');
         
+        // Filtra apenas categorias que permitem exibição no site (showOnline !== false)
+        const onlineCategories = allCategories.filter(c => c.showOnline !== false);
+        
         let html = `<button class="tab active" onclick="filterCatalog('Todas', this)">Todas</button>`;
-        allCategories.forEach(c => {
+        onlineCategories.forEach(c => {
             html += `<button class="tab" onclick="filterCatalog('${c.name}', this)">${c.name}</button>`;
         });
         tabs.innerHTML = html;
@@ -32,8 +35,11 @@ async function fetchCatalog() {
         const res = await fetch(`${API_URL}/products`);
         const allProducts = await res.json();
         
-        // Puxa os produtos que estão no banco de dados com estoque
-        catalog = allProducts.filter(p => p.stock > 0);
+        // Pega nomes das categorias permitidas no site
+        const onlineCatNames = allCategories.filter(c => c.showOnline !== false).map(c => c.name);
+        
+        // Puxa produtos com estoque e de categorias visíveis no site
+        catalog = allProducts.filter(p => p.stock > 0 && onlineCatNames.includes(p.category));
         renderCatalog();
     } catch (e) {
         document.getElementById('catalog-grid').innerHTML = '<p style="color:red; text-align:center; width:100%;">Erro ao carregar produtos. Tente novamente.</p>';
@@ -49,8 +55,6 @@ function filterCatalog(cat, btn) {
 
 function renderCatalog() {
     const grid = document.getElementById('catalog-grid');
-    
-    // Filtra pela categoria selecionada
     const filtered = catalog.filter(p => currentCategory === 'Todas' || p.category === currentCategory);
 
     if (filtered.length === 0) {
@@ -86,7 +90,7 @@ function addToCart(productId) {
             price: product.price, 
             quantity: 1, 
             ticketCount: product.ticketCount || 1, 
-            isWholesale: product.isWholesale || true 
+            isWholesale: true 
         });
     }
     updateCartUI();
@@ -121,7 +125,6 @@ function updateCartUI() {
         closeModal('cart-modal');
     }
 
-    // Atualiza a lista dentro do modal
     document.getElementById('cart-items').innerHTML = cart.map(item => `
         <li>
             <div>
@@ -136,7 +139,6 @@ function updateCartUI() {
         </li>
     `).join('');
     
-    // Atualiza o total gigante dentro do modal do carrinho
     document.getElementById('cart-modal-total').innerText = `R$ ${totalPrice.toFixed(2)}`;
 }
 
@@ -152,17 +154,14 @@ function openCheckout() {
 
 function updateCheckoutTotals() {
     const total = cart.reduce((s, i) => s + (i.price * i.quantity), 0);
-    
     document.getElementById('chk-subtotal').innerText = `R$ ${total.toFixed(2)}`;
     document.getElementById('chk-total').innerText = `R$ ${total.toFixed(2)}`;
-    
-    // Guarda o valor total na janela para a função de pagamento usar
     window.currentCheckoutTotal = total;
 }
 
 async function processPayment(metodo) {
-    // String que vai aparecer lá no histórico do balcão (já que removemos o delivery automático)
-    let paymentString = `Pedido Online: ${metodo} | Combinar Entrega no Whats`;
+    // Define como pendente para bloquear o faturamento automático até confirmação manual
+    let paymentString = `Pedido Online: ${metodo} | Pendente (Aguardando Confirmação)`;
 
     if (metodo === 'Pix') {
         closeModal('checkout-modal');
@@ -230,16 +229,14 @@ async function finalizeOrder(paymentMethodString) {
 }
 
 function setupWhatsAppButton(info) {
-    const numeroLoja = "5569999999999"; // COLOQUE AQUI O WHATSAPP DO CONTEINER BEER
+    const numeroLoja = "5569999999999"; // SEU WHATSAPP
     
-    let texto = `*Olá, acabei de fazer um pedido online e gostaria de confirmar a entrega/retirada!*\n\n`;
-    let sub = 0;
+    let texto = `*Olá, acabei de fazer um pedido online e gostaria de confirmar!*[cite: 2]\n\n`;
     cart.forEach(item => {
         texto += `▪️ ${item.quantity}x ${item.productName} (R$ ${(item.price * item.quantity).toFixed(2)})\n`;
-        sub += (item.price * item.quantity);
     });
     
-    texto += `\n*Forma de Pagamento:* ${info}`;
+    texto += `\n*Pagamento:* ${info}`;
     texto += `\n*Total dos Produtos:* R$ ${window.currentCheckoutTotal.toFixed(2)}`;
     
     const url = `https://wa.me/${numeroLoja}?text=${encodeURIComponent(texto)}`;
