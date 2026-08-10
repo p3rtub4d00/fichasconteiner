@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Conteiner Beer - Atacado</title>
+    <title>Conteiner Beer - Pedido Online</title>
     <style>
         :root {
             --bg-dark: #121214;
@@ -23,6 +23,12 @@
         
         .container { padding: 15px; max-width: 800px; margin: 0 auto; }
         
+        /* Abas de Categoria */
+        .category-tabs { display: flex; overflow-x: auto; gap: 10px; padding: 10px 0; margin-bottom: 15px; scrollbar-width: none; }
+        .category-tabs::-webkit-scrollbar { display: none; }
+        .category-tabs .tab { background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); padding: 8px 16px; border-radius: 20px; white-space: nowrap; cursor: pointer; font-size: 14px; }
+        .category-tabs .tab.active { background: var(--primary); color: #000; font-weight: bold; border-color: var(--primary); }
+
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; }
         .card { background: var(--bg-card); padding: 15px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; justify-content: space-between; text-align: center; }
         .card h3 { font-size: 14px; margin-bottom: 10px; height: 40px; overflow: hidden; }
@@ -44,15 +50,13 @@
         .modal-header h2 { font-size: 18px; color: var(--primary); }
         .close-btn { background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; }
         
-        .cart-list { list-style: none; margin-bottom: 20px; }
+        .cart-list { list-style: none; margin-bottom: 10px; }
         .cart-list li { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
         .qty-controls { display: flex; align-items: center; gap: 10px; background: var(--bg-card); border-radius: 6px; padding: 5px; }
         .qty-controls button { background: var(--border); color: white; border: none; width: 30px; height: 30px; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; }
         
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 5px; }
-        .form-group select, .form-group input { width: 100%; padding: 12px; background: var(--bg-card); border: 1px solid var(--border); color: white; border-radius: 6px; font-size: 14px; }
-        
+        .cart-total-display { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; font-size: 18px; font-weight: bold; color: var(--primary); margin-bottom: 15px; border-bottom: 1px dashed var(--border); }
+
         .totals-box { background: var(--bg-card); padding: 15px; border-radius: 8px; margin-bottom: 20px; }
         .totals-box div { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 14px; }
         .totals-box .final { font-size: 18px; font-weight: bold; color: var(--primary); margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
@@ -68,13 +72,18 @@
 
     <header>
         <h1>Conteiner Beer</h1>
-        <p>Atacado & Distribuidora - Porto Velho/RO</p>
+        <p>Faça seu pedido online e retire ou combine a entrega!</p>
     </header>
 
     <div class="container">
-        <h2 style="font-size: 16px; margin-bottom: 15px; color: var(--text-muted);">Tabela de Atacado:</h2>
+        <!-- Navegação de Categorias -->
+        <div class="category-tabs" id="category-tabs">
+            <button class="tab active" onclick="filterCatalog('Todas', this)">Todas</button>
+            <!-- Categorias serão inseridas aqui dinamicamente -->
+        </div>
+
         <div class="grid" id="catalog-grid">
-            <p style="text-align:center; width:100%; color:var(--text-muted);">Carregando produtos...</p>
+            <p style="text-align:center; width:100%; color:var(--text-muted);">Carregando catálogo...</p>
         </div>
     </div>
 
@@ -82,7 +91,7 @@
     <div class="floating-cart" id="cart-floating-btn" onclick="openCart()">
         <span id="cart-qty">0 itens</span>
         <span>Ver Carrinho 🛒</span>
-        <span id="cart-total">R$ 0,00</span>
+        <span id="cart-total-float">R$ 0,00</span>
     </div>
 
     <!-- Modal do Carrinho -->
@@ -93,11 +102,17 @@
                 <button class="close-btn" onclick="closeModal('cart-modal')">&times;</button>
             </div>
             <ul class="cart-list" id="cart-items"></ul>
-            <button class="btn-full" onclick="openCheckout()">Continuar para Entrega/Pagamento ➔</button>
+            
+            <div class="cart-total-display">
+                <span>Total:</span>
+                <span id="cart-modal-total">R$ 0,00</span>
+            </div>
+
+            <button class="btn-full" onclick="openCheckout()">Continuar para Pagamento ➔</button>
         </div>
     </div>
 
-    <!-- Modal de Checkout (Entrega e Pagamento) -->
+    <!-- Modal de Checkout -->
     <div class="modal" id="checkout-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -105,33 +120,17 @@
                 <button class="close-btn" onclick="closeModal('checkout-modal')">&times;</button>
             </div>
             
-            <div class="form-group">
-                <label>Como deseja receber?</label>
-                <select id="delivery-type" onchange="updateCheckoutTotals()">
-                    <option value="retirada">Vou retirar no local (Conteiner Beer)</option>
-                    <option value="entrega">Quero receber no meu endereço (Delivery)</option>
-                </select>
-            </div>
-
-            <div id="address-section" style="display: none;">
-                <div class="form-group">
-                    <label>Bairro / Região (Porto Velho)</label>
-                    <select id="delivery-zone" onchange="updateCheckoutTotals()"></select>
-                </div>
-                <div class="form-group">
-                    <label>Endereço Completo (Rua, Número, Referência)</label>
-                    <input type="text" id="delivery-address" placeholder="Ex: Rua X, 123 - Próximo ao mercado">
-                </div>
-            </div>
+            <p style="color: var(--primary); font-size: 13px; margin-bottom: 15px; text-align: center; background: rgba(245, 158, 11, 0.1); padding: 10px; border-radius: 8px;">
+                ⚠️ <strong>Atenção:</strong> Após o pagamento, você será redirecionado ao WhatsApp para combinar a retirada na loja ou a taxa do motoboy (sujeito a disponibilidade).
+            </p>
 
             <div class="totals-box">
-                <div><span>Subtotal:</span> <span id="chk-subtotal">R$ 0,00</span></div>
-                <div><span>Frete:</span> <span id="chk-frete">R$ 0,00</span></div>
-                <div class="final"><span>Total a Pagar:</span> <span id="chk-total">R$ 0,00</span></div>
+                <div><span>Subtotal (Produtos):</span> <span id="chk-subtotal">R$ 0,00</span></div>
+                <div class="final"><span>Total a Pagar Agora:</span> <span id="chk-total">R$ 0,00</span></div>
             </div>
 
             <button class="btn-full btn-pix" onclick="processPayment('Pix')">💳 Pagar Agora com PIX</button>
-            <button class="btn-full" style="background: var(--bg-card); border: 1px solid var(--border);" onclick="processPayment('Na Entrega')">💵 Pagar na Retirada/Entrega</button>
+            <button class="btn-full" style="background: var(--bg-card); border: 1px solid var(--border);" onclick="processPayment('Na Retirada/Entrega')">💵 Pagar direto na Retirada/Entrega</button>
         </div>
     </div>
 
@@ -154,8 +153,8 @@
         <div class="modal-content" style="text-align: center;">
             <h1 style="color: var(--success); font-size: 50px; margin-bottom: 10px;">✅</h1>
             <h2 style="margin-bottom: 10px;">Pedido Confirmado!</h2>
-            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">Seu pedido já foi impresso no nosso caixa e estamos preparando.</p>
-            <button class="btn-full btn-pix" id="btn-whatsapp">📲 Avisar no WhatsApp</button>
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">Seu pedido já foi enviado ao nosso sistema. Envie uma mensagem no WhatsApp agora para combinar a entrega/retirada!</p>
+            <button class="btn-full btn-pix" id="btn-whatsapp">📲 Enviar Mensagem no WhatsApp</button>
             <button class="btn-full" style="background: var(--bg-card); border: 1px solid var(--border);" onclick="location.reload()">Fazer novo pedido</button>
         </div>
     </div>
