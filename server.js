@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const crypto = require('crypto');
 const { MercadoPagoConfig, Payment } = require('mercadopago');
 
 const app = express();
@@ -49,6 +50,85 @@ const Customer = mongoose.model('Customer', new mongoose.Schema({
     clubBalance: { type: Number, default: 0 },
     clubHistory: [{ items: Array, total: Number, date: { type: Date, default: Date.now } }]
 }));
+const Account = mongoose.model('Account', new mongoose.Schema({
+    role: { type: String, unique: true, required: true },
+    passwordHash: { type: String, required: true },
+    updatedAt: { type: Date, default: Date.now }
+}));
+
+// As senhas nunca são enviadas para o navegador nem gravadas em texto puro.
+const hashPassword = (password) => new Promise((resolve, reject) => {
+    const salt = crypto.randomBytes(16).toString('hex');
+    crypto.scrypt(password, salt, 64, (err, derivedKey) => {
+        if (err) return reject(err);
+        resolve(`${salt}:${derivedKey.toString('hex')}`);
+    });
+});
+const verifyPassword = (password, storedHash) => new Promise((resolve, reject) => {
+    const [salt, key] = String(storedHash).split(':');
+    if (!salt || !key) return resolve(false);
+    crypto.scrypt(password, salt, 64, (err, derivedKey) => {
+        if (err) return reject(err);
+        const expected = Buffer.from(key, 'hex');
+        resolve(expected.length === derivedKey.length && crypto.timingSafeEqual(expected, derivedKey));
+    });
+});
+
+async function ensureAccounts() {
+    const defaults = [
+        { role: 'admin', password: process.env.ADMIN_PASSWORD || 'admin123' },
+        { role: 'garcom', password: process.env.WAITER_PASSWORD || 'garcom123' }
+    ];
+    for (const account of defaults) {
+        if (!await Account.exists({ role: account.role })) {
+            await new Account({ role: account.role, passwordHash: await hashPassword(account.password) }).save();
+            if (!process.env[account.role === 'admin' ? 'ADMIN_PASSWORD' : 'WAITER_PASSWORD']) {
+                console.warn(`ATENÇÃO: defina ${account.role === 'admin' ? 'ADMIN_PASSWORD' : 'WAITER_PASSWORD'} no arquivo .env e troque esta senha após o primeiro acesso.`);
+            }
+        }
+    }
+}
+
+const sessions = new Map();
+function createSession(role) {
+    const token = crypto.randomBytes(32).toString('hex');
+    sessions.set(token, { role, expiresAt: Date.now() + (8 * 60 * 60 * 1000) });
+    return token;
+}
+function getSession(req) {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    const session = sessions.get(token);
+    if (!session || session.expiresAt < Date.now()) { sessions.delete(token); return null; }
+    return { token, ...session };
+}
+
+// ================= AUTENTICAÇÃO =================
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { role, password } = req.body;
+        if (!['admin', 'garcom'].includes(role) || !password) return res.status(400).json({ error: 'Dados de acesso inválidos' });
+        await ensureAccounts();
+        const account = await Account.findOne({ role });
+        if (!account || !await verifyPassword(password, account.passwordHash)) return res.status(401).json({ error: 'Senha incorreta' });
+        res.json({ role, token: createSession(role) });
+    } catch (error) { res.status(500).json({ error: 'Não foi possível validar o acesso' }); }
+});
+
+app.put('/api/auth/password', async (req, res) => {
+    try {
+        const session = getSession(req);
+        if (!session || session.role !== 'admin') return res.status(401).json({ error: 'Sessão inválida. Entre novamente.' });
+        const { currentPassword, newPassword } = req.body;
+        if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: 'A nova senha deve ter pelo menos 8 caracteres.' });
+        const account = await Account.findOne({ role: 'admin' });
+        if (!account || !await verifyPassword(currentPassword || '', account.passwordHash)) return res.status(401).json({ error: 'Senha atual incorreta.' });
+        account.passwordHash = await hashPassword(newPassword);
+        account.updatedAt = new Date();
+        await account.save();
+        sessions.clear();
+        res.json({ success: true });
+    } catch (error) { res.status(500).json({ error: 'Não foi possível alterar a senha' }); }
+});
 
 // Função auxiliar para abater do Clube automaticamente
 async function processClubPaymentIfNeeded(paymentMethod, items, total) {

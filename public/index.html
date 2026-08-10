@@ -60,6 +60,10 @@
         </header>
         <main class="admin-container">
             <div class="admin-col-left">
+                <section class="card security-card">
+                    <div class="section-heading"><span class="section-icon">🔐</span><div><h3>Segurança da conta</h3><p>Altere a senha administrativa quando precisar.</p></div></div>
+                    <button class="btn-outline" onclick="openPasswordModal()">Trocar senha administrativa</button>
+                </section>
                 <section class="card">
                     <h3>Faturamento Diário</h3>
                     <div class="input-date-wrapper" style="margin-bottom: 10px;">
@@ -144,6 +148,17 @@
                 </section>
             </div>
         </main>
+    </div>
+
+    <div id="password-modal" class="modal">
+        <div class="modal-box">
+            <div class="modal-title"><span>🔐</span><h2>Trocar senha</h2></div>
+            <p class="modal-help">Use ao menos 8 caracteres e não reutilize uma senha fácil de adivinhar.</p>
+            <input type="password" id="current-admin-password" placeholder="Senha atual" autocomplete="current-password">
+            <input type="password" id="new-admin-password" placeholder="Nova senha" autocomplete="new-password">
+            <input type="password" id="confirm-admin-password" placeholder="Confirmar nova senha" autocomplete="new-password">
+            <div class="modal-actions"><button class="btn-outline" onclick="closePasswordModal()">Cancelar</button><button onclick="changeAdminPassword()">Salvar nova senha</button></div>
+        </div>
     </div>
 
     <!-- TELA GARÇOM (REFORMULADA COM MENU) -->

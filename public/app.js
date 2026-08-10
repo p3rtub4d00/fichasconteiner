@@ -18,8 +18,10 @@ let activeModalType = 'fiado'; // 'fiado' ou 'clube'
 window.onload = () => {
     applySavedTheme();
     const savedRole = localStorage.getItem('userRole');
-    if (savedRole === 'admin') { switchView('admin-view'); loadAdminData(); } 
-    else if (savedRole === 'garcom') { switchView('waiter-view'); loadWaiterData(); }
+    const authToken = localStorage.getItem('authToken');
+    if (savedRole === 'admin' && authToken) { switchView('admin-view'); loadAdminData(); } 
+    else if (savedRole === 'garcom' && authToken) { switchView('waiter-view'); loadWaiterData(); }
+    else { localStorage.removeItem('userRole'); localStorage.removeItem('authToken'); }
     
     setInterval(checkNewOrdersForPrint, 5000);
 };
@@ -319,14 +321,57 @@ function switchView(viewId) {
     document.getElementById(viewId).classList.add('active');
 }
 
-function login() {
-    const pin = document.getElementById('pin-input').value;
-    if (pin === 'admin123') { localStorage.setItem('userRole', 'admin'); switchView('admin-view'); loadAdminData(); } 
-    else if (pin === 'garcom123') { localStorage.setItem('userRole', 'garcom'); switchView('waiter-view'); loadWaiterData(); } 
-    else { alert('Senha incorreta!'); }
-    document.getElementById('pin-input').value = '';
+async function login() {
+    const pinInput = document.getElementById('pin-input');
+    const password = pinInput.value;
+    if (!password) return alert('Digite sua senha para entrar.');
+
+    for (const role of ['admin', 'garcom']) {
+        try {
+            const res = await fetch(`${API_URL}/auth/login`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role, password })
+            });
+            if (!res.ok) continue;
+            const data = await res.json();
+            localStorage.setItem('userRole', data.role);
+            localStorage.setItem('authToken', data.token);
+            pinInput.value = '';
+            if (data.role === 'admin') { switchView('admin-view'); loadAdminData(); }
+            else { switchView('waiter-view'); loadWaiterData(); }
+            return;
+        } catch (error) { break; }
+    }
+    pinInput.value = '';
+    alert('Senha incorreta ou servidor indisponível.');
 }
-function logout() { localStorage.removeItem('userRole'); switchView('login-view'); }
+function logout() { localStorage.removeItem('userRole'); localStorage.removeItem('authToken'); switchView('login-view'); }
+
+function openPasswordModal() { document.getElementById('password-modal').classList.add('active'); }
+function closePasswordModal() {
+    document.getElementById('password-modal').classList.remove('active');
+    ['current-admin-password', 'new-admin-password', 'confirm-admin-password'].forEach(id => document.getElementById(id).value = '');
+}
+async function changeAdminPassword() {
+    const currentPassword = document.getElementById('current-admin-password').value;
+    const newPassword = document.getElementById('new-admin-password').value;
+    const confirmPassword = document.getElementById('confirm-admin-password').value;
+    if (!currentPassword || !newPassword) return alert('Preencha todos os campos.');
+    if (newPassword.length < 8) return alert('A nova senha deve ter ao menos 8 caracteres.');
+    if (newPassword !== confirmPassword) return alert('A confirmação não corresponde à nova senha.');
+    try {
+        const res = await fetch(`${API_URL}/auth/password`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` },
+            body: JSON.stringify({ currentPassword, newPassword })
+        });
+        const data = await res.json();
+        if (!res.ok) return alert(data.error || 'Não foi possível alterar a senha.');
+        closePasswordModal();
+        showToast('Senha alterada. Faça login novamente.');
+        setTimeout(logout, 1200);
+    } catch (error) { alert('Erro de conexão ao alterar a senha.'); }
+}
 
 function showToast(message) {
     const toast = document.createElement('div'); toast.className = 'toast-msg';
