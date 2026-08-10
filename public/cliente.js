@@ -1,45 +1,64 @@
 const API_URL = '/api';
 
-// Tabela de fretes para Porto Velho (pode alterar os valores e nomes livremente)
-const taxasDeEntrega = {
-    "Centro": 5.00,
-    "Olaria / Arigolândia / Caiari": 7.00,
-    "Zona Sul (Jatuarana, Castanheira, etc)": 15.00,
-    "Zona Leste (Av. Amazonas, Socialista, etc)": 18.00,
-    "Zona Norte (Nacional, Rio Madeira)": 12.00,
-    "Outras Regiões (Consultar)": 20.00
-};
-
 let catalog = [];
 let cart = [];
+let allCategories = [];
+let currentCategory = 'Todas';
 let pixInterval = null;
 
 window.onload = async () => {
-    loadDeliveryZones();
+    await fetchCategories();
     await fetchCatalog();
 };
+
+async function fetchCategories() {
+    try {
+        const res = await fetch(`${API_URL}/categories`);
+        allCategories = await res.json();
+        const tabs = document.getElementById('category-tabs');
+        
+        let html = `<button class="tab active" onclick="filterCatalog('Todas', this)">Todas</button>`;
+        allCategories.forEach(c => {
+            html += `<button class="tab" onclick="filterCatalog('${c.name}', this)">${c.name}</button>`;
+        });
+        tabs.innerHTML = html;
+    } catch (e) {
+        console.error("Erro ao carregar categorias", e);
+    }
+}
 
 async function fetchCatalog() {
     try {
         const res = await fetch(`${API_URL}/products`);
         const allProducts = await res.json();
         
-        // Filtra apenas produtos de atacado que tenham estoque
-        catalog = allProducts.filter(p => p.isWholesale === true && p.stock > 0);
+        // Puxa os produtos que estão no banco de dados com estoque
+        catalog = allProducts.filter(p => p.stock > 0);
         renderCatalog();
     } catch (e) {
         document.getElementById('catalog-grid').innerHTML = '<p style="color:red; text-align:center; width:100%;">Erro ao carregar produtos. Tente novamente.</p>';
     }
 }
 
+function filterCatalog(cat, btn) {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentCategory = cat;
+    renderCatalog();
+}
+
 function renderCatalog() {
     const grid = document.getElementById('catalog-grid');
-    if (catalog.length === 0) {
-        grid.innerHTML = '<p style="text-align:center; width:100%; color:var(--text-muted);">Nenhum produto de atacado disponível no momento.</p>';
+    
+    // Filtra pela categoria selecionada
+    const filtered = catalog.filter(p => currentCategory === 'Todas' || p.category === currentCategory);
+
+    if (filtered.length === 0) {
+        grid.innerHTML = '<p style="text-align:center; width:100%; color:var(--text-muted);">Nenhum produto disponível nesta categoria.</p>';
         return;
     }
 
-    grid.innerHTML = catalog.map(p => {
+    grid.innerHTML = filtered.map(p => {
         return `
         <div class="card">
             <h3>${p.name}</h3>
@@ -61,14 +80,13 @@ function addToCart(productId) {
     if (existing) {
         existing.quantity++;
     } else {
-        // Formato exato que o backend e a impressora (app.js) precisam
         cart.push({ 
             id: product._id, 
             productName: product.name, 
             price: product.price, 
             quantity: 1, 
             ticketCount: product.ticketCount || 1, 
-            isWholesale: true 
+            isWholesale: product.isWholesale || true 
         });
     }
     updateCartUI();
@@ -97,12 +115,13 @@ function updateCartUI() {
     if (totalItems > 0) {
         floatBtn.classList.add('active');
         document.getElementById('cart-qty').innerText = `${totalItems} itens`;
-        document.getElementById('cart-total').innerText = `R$ ${totalPrice.toFixed(2)}`;
+        document.getElementById('cart-total-float').innerText = `R$ ${totalPrice.toFixed(2)}`;
     } else {
         floatBtn.classList.remove('active');
         closeModal('cart-modal');
     }
 
+    // Atualiza a lista dentro do modal
     document.getElementById('cart-items').innerHTML = cart.map(item => `
         <li>
             <div>
@@ -116,13 +135,9 @@ function updateCartUI() {
             </div>
         </li>
     `).join('');
-}
-
-function loadDeliveryZones() {
-    const select = document.getElementById('delivery-zone');
-    select.innerHTML = Object.keys(taxasDeEntrega).map(zone => 
-        `<option value="${zone}">${zone} - R$ ${taxasDeEntrega[zone].toFixed(2)}</option>`
-    ).join('');
+    
+    // Atualiza o total gigante dentro do modal do carrinho
+    document.getElementById('cart-modal-total').innerText = `R$ ${totalPrice.toFixed(2)}`;
 }
 
 function openCart() { document.getElementById('cart-modal').classList.add('active'); }
@@ -136,44 +151,18 @@ function openCheckout() {
 }
 
 function updateCheckoutTotals() {
-    const subtotal = cart.reduce((s, i) => s + (i.price * i.quantity), 0);
-    const isDelivery = document.getElementById('delivery-type').value === 'entrega';
+    const total = cart.reduce((s, i) => s + (i.price * i.quantity), 0);
     
-    document.getElementById('address-section').style.display = isDelivery ? 'block' : 'none';
-    
-    let frete = 0;
-    if (isDelivery) {
-        const zone = document.getElementById('delivery-zone').value;
-        frete = taxasDeEntrega[zone] || 0;
-    }
-    
-    const total = subtotal + frete;
-    
-    document.getElementById('chk-subtotal').innerText = `R$ ${subtotal.toFixed(2)}`;
-    document.getElementById('chk-frete').innerText = `R$ ${frete.toFixed(2)}`;
+    document.getElementById('chk-subtotal').innerText = `R$ ${total.toFixed(2)}`;
     document.getElementById('chk-total').innerText = `R$ ${total.toFixed(2)}`;
     
     // Guarda o valor total na janela para a função de pagamento usar
     window.currentCheckoutTotal = total;
-    window.currentFrete = frete;
 }
 
 async function processPayment(metodo) {
-    const isDelivery = document.getElementById('delivery-type').value === 'entrega';
-    const zone = document.getElementById('delivery-zone').value;
-    const address = document.getElementById('delivery-address').value;
-    
-    if (isDelivery && address.trim() === '') {
-        return alert('Por favor, informe o endereço de entrega completo.');
-    }
-
-    // Prepara a informação do método de pagamento que vai ser impressa no balcão!
-    let paymentString = '';
-    if (isDelivery) {
-        paymentString = `${metodo} | ENTREGA: ${zone} (${address}) - Frete: R$${window.currentFrete.toFixed(2)}`;
-    } else {
-        paymentString = `${metodo} | RETIRAR NO BALCÃO`;
-    }
+    // String que vai aparecer lá no histórico do balcão (já que removemos o delivery automático)
+    let paymentString = `Pedido Online: ${metodo} | Combinar Entrega no Whats`;
 
     if (metodo === 'Pix') {
         closeModal('checkout-modal');
@@ -198,7 +187,7 @@ async function processPayment(metodo) {
                 }
             }, 3000);
         } catch (e) {
-            alert('Erro ao gerar PIX. Tente pagar na entrega.');
+            alert('Erro ao gerar PIX. Escolha pagar na retirada/entrega.');
             cancelPix();
         }
     } else {
@@ -221,16 +210,14 @@ async function finalizeOrder(paymentMethodString) {
                 items: cart, 
                 total: window.currentCheckoutTotal, 
                 paymentMethod: paymentMethodString, 
-                waiter: 'Pedido Online (Site)' // Identifica no painel de onde veio
+                waiter: 'Pedido Online (Site)' 
             }) 
         });
         
         if (!res.ok) throw new Error('Erro');
         
-        // Setup WhatsApp Message
         setupWhatsAppButton(paymentMethodString);
 
-        // Limpa carrinho e mostra sucesso
         cart = [];
         updateCartUI();
         closeModal('checkout-modal');
@@ -243,17 +230,17 @@ async function finalizeOrder(paymentMethodString) {
 }
 
 function setupWhatsAppButton(info) {
-    const numeroLoja = "5569999999999"; // COLOQUE O SEU NÚMERO DO WHATSAPP AQUI (DDD + Numero sem espaço)
+    const numeroLoja = "5569999999999"; // COLOQUE AQUI O WHATSAPP DO CONTEINER BEER
     
-    let texto = `*Novo Pedido Online!*\n\n`;
+    let texto = `*Olá, acabei de fazer um pedido online e gostaria de confirmar a entrega/retirada!*\n\n`;
     let sub = 0;
     cart.forEach(item => {
-        texto += `${item.quantity}x ${item.productName} (R$ ${(item.price * item.quantity).toFixed(2)})\n`;
+        texto += `▪️ ${item.quantity}x ${item.productName} (R$ ${(item.price * item.quantity).toFixed(2)})\n`;
         sub += (item.price * item.quantity);
     });
     
-    texto += `\n*Detalhes:* ${info}`;
-    texto += `\n*Total a pagar:* R$ ${window.currentCheckoutTotal.toFixed(2)}`;
+    texto += `\n*Forma de Pagamento:* ${info}`;
+    texto += `\n*Total dos Produtos:* R$ ${window.currentCheckoutTotal.toFixed(2)}`;
     
     const url = `https://wa.me/${numeroLoja}?text=${encodeURIComponent(texto)}`;
     
