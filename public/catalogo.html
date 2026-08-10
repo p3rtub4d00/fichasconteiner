@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Conteiner Beer - Atacado</title>
+    <style>
+        :root {
+            --bg-dark: #121214;
+            --bg-card: #202024;
+            --primary: #f59e0b;
+            --success: #10b981;
+            --text-main: #e1e1e6;
+            --text-muted: #a8a8b3;
+            --border: #323238;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-main); padding-bottom: 80px; }
+        
+        header { background-color: var(--bg-card); padding: 20px; text-align: center; border-bottom: 2px solid var(--primary); position: sticky; top: 0; z-index: 100; }
+        header h1 { color: var(--primary); font-size: 22px; }
+        header p { color: var(--text-muted); font-size: 13px; margin-top: 5px; }
+        
+        .container { padding: 15px; max-width: 800px; margin: 0 auto; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; }
+        .card { background: var(--bg-card); padding: 15px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; justify-content: space-between; text-align: center; }
+        .card h3 { font-size: 14px; margin-bottom: 10px; height: 40px; overflow: hidden; }
+        .card .price { color: var(--primary); font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+        .card .stock { font-size: 11px; color: var(--text-muted); margin-bottom: 15px; }
+        .card button { background: var(--primary); color: #000; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; }
+        .card button:disabled { background: var(--border); color: var(--text-muted); cursor: not-allowed; }
+        
+        .floating-cart { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--primary); color: #000; padding: 15px 20px; border-radius: 30px; display: none; justify-content: space-between; align-items: center; width: 90%; max-width: 400px; font-weight: bold; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); cursor: pointer; z-index: 1000; }
+        .floating-cart.active { display: flex; }
+        
+        /* Modais */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: flex-end; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--bg-dark); width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; padding: 20px; border-radius: 16px 16px 0 0; border-top: 2px solid var(--primary); animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .modal-header h2 { font-size: 18px; color: var(--primary); }
+        .close-btn { background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; }
+        
+        .cart-list { list-style: none; margin-bottom: 20px; }
+        .cart-list li { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .qty-controls { display: flex; align-items: center; gap: 10px; background: var(--bg-card); border-radius: 6px; padding: 5px; }
+        .qty-controls button { background: var(--border); color: white; border: none; width: 30px; height: 30px; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 5px; }
+        .form-group select, .form-group input { width: 100%; padding: 12px; background: var(--bg-card); border: 1px solid var(--border); color: white; border-radius: 6px; font-size: 14px; }
+        
+        .totals-box { background: var(--bg-card); padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .totals-box div { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 14px; }
+        .totals-box .final { font-size: 18px; font-weight: bold; color: var(--primary); margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+        
+        .btn-full { width: 100%; padding: 15px; background: var(--success); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        .btn-pix { background: #3b82f6; }
+        
+        #pix-container { text-align: center; margin: 20px 0; }
+        #pix-container img { max-width: 200px; border-radius: 8px; border: 2px solid white; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Conteiner Beer</h1>
+        <p>Atacado & Distribuidora - Porto Velho/RO</p>
+    </header>
+
+    <div class="container">
+        <h2 style="font-size: 16px; margin-bottom: 15px; color: var(--text-muted);">Tabela de Atacado:</h2>
+        <div class="grid" id="catalog-grid">
+            <p style="text-align:center; width:100%; color:var(--text-muted);">Carregando produtos...</p>
+        </div>
+    </div>
+
+    <!-- Carrinho Flutuante -->
+    <div class="floating-cart" id="cart-floating-btn" onclick="openCart()">
+        <span id="cart-qty">0 itens</span>
+        <span>Ver Carrinho 🛒</span>
+        <span id="cart-total">R$ 0,00</span>
+    </div>
+
+    <!-- Modal do Carrinho -->
+    <div class="modal" id="cart-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Seu Pedido</h2>
+                <button class="close-btn" onclick="closeModal('cart-modal')">&times;</button>
+            </div>
+            <ul class="cart-list" id="cart-items"></ul>
+            <button class="btn-full" onclick="openCheckout()">Continuar para Entrega/Pagamento ➔</button>
+        </div>
+    </div>
+
+    <!-- Modal de Checkout (Entrega e Pagamento) -->
+    <div class="modal" id="checkout-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Finalizar Pedido</h2>
+                <button class="close-btn" onclick="closeModal('checkout-modal')">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label>Como deseja receber?</label>
+                <select id="delivery-type" onchange="updateCheckoutTotals()">
+                    <option value="retirada">Vou retirar no local (Conteiner Beer)</option>
+                    <option value="entrega">Quero receber no meu endereço (Delivery)</option>
+                </select>
+            </div>
+
+            <div id="address-section" style="display: none;">
+                <div class="form-group">
+                    <label>Bairro / Região (Porto Velho)</label>
+                    <select id="delivery-zone" onchange="updateCheckoutTotals()"></select>
+                </div>
+                <div class="form-group">
+                    <label>Endereço Completo (Rua, Número, Referência)</label>
+                    <input type="text" id="delivery-address" placeholder="Ex: Rua X, 123 - Próximo ao mercado">
+                </div>
+            </div>
+
+            <div class="totals-box">
+                <div><span>Subtotal:</span> <span id="chk-subtotal">R$ 0,00</span></div>
+                <div><span>Frete:</span> <span id="chk-frete">R$ 0,00</span></div>
+                <div class="final"><span>Total a Pagar:</span> <span id="chk-total">R$ 0,00</span></div>
+            </div>
+
+            <button class="btn-full btn-pix" onclick="processPayment('Pix')">💳 Pagar Agora com PIX</button>
+            <button class="btn-full" style="background: var(--bg-card); border: 1px solid var(--border);" onclick="processPayment('Na Entrega')">💵 Pagar na Retirada/Entrega</button>
+        </div>
+    </div>
+
+    <!-- Modal do PIX -->
+    <div class="modal" id="pix-modal">
+        <div class="modal-content" style="text-align: center;">
+            <div class="modal-header">
+                <h2>Pagamento PIX</h2>
+                <button class="close-btn" onclick="cancelPix()">&times;</button>
+            </div>
+            <p style="color: var(--text-muted); font-size: 13px;">Abra o app do seu banco e escaneie o código abaixo:</p>
+            <div id="pix-container"><p>Gerando QR Code...</p></div>
+            <h3 id="pix-status" style="color: var(--primary); margin: 10px 0;">Aguardando pagamento...</h3>
+            <p style="font-size: 11px; color: var(--danger);">Não feche esta tela até confirmar.</p>
+        </div>
+    </div>
+
+    <!-- Modal de Sucesso -->
+    <div class="modal" id="success-modal">
+        <div class="modal-content" style="text-align: center;">
+            <h1 style="color: var(--success); font-size: 50px; margin-bottom: 10px;">✅</h1>
+            <h2 style="margin-bottom: 10px;">Pedido Confirmado!</h2>
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">Seu pedido já foi impresso no nosso caixa e estamos preparando.</p>
+            <button class="btn-full btn-pix" id="btn-whatsapp">📲 Avisar no WhatsApp</button>
+            <button class="btn-full" style="background: var(--bg-card); border: 1px solid var(--border);" onclick="location.reload()">Fazer novo pedido</button>
+        </div>
+    </div>
+
+    <script src="cliente.js"></script>
+</body>
+</html>
