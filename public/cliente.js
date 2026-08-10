@@ -17,7 +17,6 @@ async function fetchCategories() {
         allCategories = await res.json();
         const tabs = document.getElementById('category-tabs');
         
-        // Filtra apenas categorias que permitem exibição no site (showOnline !== false)
         const onlineCategories = allCategories.filter(c => c.showOnline !== false);
         
         let html = `<button class="tab active" onclick="filterCatalog('Todas', this)">Todas</button>`;
@@ -158,6 +157,16 @@ function updateCheckoutTotals() {
 }
 
 async function processPayment(metodo) {
+    const clientName = document.getElementById('checkout-name') ? document.getElementById('checkout-name').value.trim() : '';
+    const clientPhone = document.getElementById('checkout-phone') ? document.getElementById('checkout-phone').value.trim() : '';
+    
+    if (!clientName) {
+        return alert('Por favor, preencha o seu nome para continuar!');
+    }
+    
+    window.currentCustomerName = clientName;
+    window.currentCustomerPhone = clientPhone || 'Não informado';
+
     let paymentString = `Pedido Online: ${metodo} | Pendente (Aguardando Confirmação)`;
 
     if (metodo === 'Pix') {
@@ -206,7 +215,9 @@ async function finalizeOrder(paymentMethodString) {
                 items: cart, 
                 total: window.currentCheckoutTotal, 
                 paymentMethod: paymentMethodString, 
-                waiter: 'Pedido Online (Site)' 
+                waiter: 'Pedido Online (Site)',
+                customerName: window.currentCustomerName,
+                customerPhone: window.currentCustomerPhone
             }) 
         });
         
@@ -235,6 +246,9 @@ function setupWhatsAppButton(info, orderCode) {
     const numeroLoja = "5569999999999";
     
     let texto = `*Olá, acabei de fazer o Pedido #${orderCode} e gostaria de confirmar!*\n\n`;
+    texto += `👤 *Cliente:* ${window.currentCustomerName}\n`;
+    texto += `📞 *Telefone:* ${window.currentCustomerPhone}\n\n`;
+    
     cart.forEach(item => {
         texto += `▪️ ${item.quantity}x ${item.productName} (R$ ${(item.price * item.quantity).toFixed(2)})\n`;
     });
