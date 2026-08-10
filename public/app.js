@@ -116,7 +116,7 @@ async function finalizeAvulsa(items, total, method) {
     }
 }
 
-// ================= EXCLUIR VENDA (PROTEGIDO POR SENHA) =================
+// ================= EXCLUIR VENDA E CONFIRMAR DELIVERY =================
 async function deleteOrder(orderId) {
     const senha = prompt("Digite a senha de administrador para excluir esta venda:");
     if (senha === null) return;
@@ -135,6 +135,69 @@ async function deleteOrder(orderId) {
     } catch (e) {
         alert('Erro ao excluir a venda.');
     }
+}
+
+async function confirmDeliveryPayment(orderId) {
+    const method = prompt("O motoboy/cliente pagou como? (Ex: Pix, Dinheiro, Maquininha)");
+    if (!method) return;
+    
+    try {
+        const res = await fetch(`${API_URL}/orders/${orderId}/confirm-payment`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ method: method })
+        });
+        if (!res.ok) throw new Error('Erro');
+        showToast('✅ Pagamento confirmado! Adicionado ao caixa.');
+        fetchHistory();
+    } catch (e) {
+        alert('Erro ao confirmar pagamento.');
+    }
+}
+
+function printDeliveryTicket(orderId) {
+    const order = currentDayOrders.find(o => o._id === orderId);
+    if (!order) return;
+
+    const dateStr = new Date(order.date).toLocaleDateString('pt-BR') + ' ' + new Date(order.date).toLocaleTimeString('pt-BR');
+    
+    let printHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white; margin-bottom: 0; page-break-after: always; break-after: page;">
+        <div style="text-align: center;">
+            <h3 style="font-size: 14px; margin-bottom: 2px;">Conteiner Beer</h3>
+            <p style="font-size: 11px; margin: 0; font-weight:bold;">-- TICKET DE ENTREGA --</p>
+            <h2 style="font-size: 14px; margin: 4px 0;">DELIVERY</h2>
+        </div>
+        <div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div>
+        <div style="margin-bottom: 6px; font-size: 11px;">
+            <strong>Endereço/Pagamento:</strong><br>
+            ${order.paymentMethod}
+        </div>
+        <div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div>
+        <table style="width: 100%; font-size: 11px; margin-bottom: 5px; border-collapse: collapse;">
+            <tr>
+                <th style="text-align:left; border-bottom: 1px solid #000;">Qtd</th>
+                <th style="text-align:left; border-bottom: 1px solid #000;">Produto</th>
+            </tr>`;
+            
+    if (order.items) {
+        order.items.forEach(item => { 
+            printHTML += `<tr><td>${item.quantity}x</td><td>${item.productName}</td></tr>`; 
+        });
+    }
+    
+    printHTML += `</table>
+        <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
+        <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-bottom: 6px;">
+            <span>A COBRAR:</span>
+            <span>R$ ${order.total.toFixed(2)}</span>
+        </div>
+        <div style="text-align: center; font-size: 10px; margin-top: 6px; border-top: 1px dotted #000; padding-top: 4px;">
+            <p style="margin: 4px 0 0 0;">${dateStr}</p>
+        </div>
+    </div>`;
+    
+    document.getElementById('print-area').innerHTML = printHTML;
+    window.print();
 }
 
 // ================= IMPRESSÃO AUTOMÁTICA (UMA POR UMA COM CORTE) =================
@@ -199,7 +262,6 @@ function printTicketsOneByOne(tickets, index) {
     document.getElementById('print-area').innerHTML = tickets[index];
     window.print();
     
-    // 2000ms (2 segundos) para garantir que a guilhotina física da Perto conclua o corte
     setTimeout(() => {
         printTicketsOneByOne(tickets, index + 1);
     }, 2000);
@@ -554,19 +616,47 @@ async function fetchHistory() {
     
     let totalRev = 0;
     document.getElementById('admin-history-list').innerHTML = currentDayOrders.map(order => {
-        totalRev += order.total; const hora = new Date(order.date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+        // Verifica se é uma entrega pendente de pagamento
+        const isPendingDelivery = order.paymentMethod && order.paymentMethod.includes('Na Entrega');
+        
+        // Só soma no faturamento se NÃO for entrega pendente
+        if (!isPendingDelivery) {
+            totalRev += order.total; 
+        }
+
+        const hora = new Date(order.date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
         let itemsHTML = order.items ? order.items.map(i => `<div style="margin-bottom: 2px;">• ${i.quantity}x ${i.productName}</div>`).join('') : 'Venda antiga';
-        return `<li style="flex-direction: column; align-items: flex-start; gap: 8px;">
+        
+        // Botões de ação dinâmicos
+        let actionButtons = ``;
+        
+        // Se for entrega, exibe o botão imprimir para o motoboy
+        if (order.paymentMethod && order.paymentMethod.includes('ENTREGA')) {
+            actionButtons += `<button class="btn-pay" style="background: #3b82f6; color: white; padding: 4px 8px; font-size: 11px; margin-right: 5px;" onclick="printDeliveryTicket('${order._id}')">🖨️ Imprimir</button>`;
+        }
+
+        // Se for pendente de pagamento na entrega, exibe o botão Receber
+        if (isPendingDelivery) {
+            actionButtons += `<button class="btn-pay" style="background: var(--success); color: white; padding: 4px 8px; font-size: 11px; margin-right: 5px;" onclick="confirmDeliveryPayment('${order._id}')">✅ Receber</button>`;
+        }
+        
+        // Botão de excluir padrão
+        actionButtons += `<button class="btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteOrder('${order._id}')">🗑️ Excluir</button>`;
+
+        return `<li style="flex-direction: column; align-items: flex-start; gap: 8px; ${isPendingDelivery ? 'border-left: 4px solid var(--primary);' : ''}">
             <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
                 <div style="font-size: 14px;">${itemsHTML}</div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-weight:bold; color:var(--success); font-size: 16px;">R$ ${order.total.toFixed(2)}</span>
-                    <button class="btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteOrder('${order._id}')">🗑️ Excluir</button>
+                <div style="display: flex; align-items: center;">
+                    <span style="font-weight:bold; color:${isPendingDelivery ? 'var(--primary)' : 'var(--success)'}; font-size: 16px; margin-right: 10px;">R$ ${order.total.toFixed(2)}</span>
+                    ${actionButtons}
                 </div>
             </div>
-            <div style="width: 100%; border-top: 1px solid var(--border); padding-top: 6px;"><small style="color: var(--text-muted);">${hora} - <strong>${order.paymentMethod || 'Dinheiro'}</strong></small></div>
+            <div style="width: 100%; border-top: 1px solid var(--border); padding-top: 6px;">
+                <small style="color: var(--text-muted);">${hora} - <strong>${order.paymentMethod || 'Dinheiro'}</strong> ${isPendingDelivery ? '<span style="color:var(--primary); font-weight:bold;"> (AGUARDANDO PAGAMENTO)</span>' : ''}</small>
+            </div>
         </li>`;
     }).join('') || '<p style="text-align:center; color:var(--text-muted); padding:10px;">Nenhuma venda registrada hoje.</p>';
+    
     document.getElementById('total-revenue').innerText = `R$ ${totalRev.toFixed(2)}`;
 }
 
@@ -574,6 +664,9 @@ function printDailyReport() {
     if (!currentDayOrders || currentDayOrders.length === 0) return alert('Sem vendas!');
     let totalRev = 0; let reportHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white; page-break-after: always; break-after: page; margin-bottom: 0;"><div style="text-align: center;"><h3>Conteiner Beer</h3><p>--- FECHAMENTO ---</p></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div>`;
     currentDayOrders.forEach((order, index) => {
+        // Ignora os pendentes no relatório impresso
+        if(order.paymentMethod && order.paymentMethod.includes('Na Entrega')) return;
+
         totalRev += order.total; const hora = new Date(order.date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
         reportHTML += `<div style="margin-bottom: 5px;"><strong>#${index + 1} (${hora}) - ${order.paymentMethod}</strong><br>`;
         if (order.items) order.items.forEach(i => { reportHTML += `&nbsp;• ${i.quantity}x ${i.productName}<br>`; });
