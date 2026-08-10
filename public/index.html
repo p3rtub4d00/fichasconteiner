@@ -58,13 +58,27 @@
             </div>
             <button onclick="logout()" class="btn-danger">Sair</button>
         </header>
+        <nav class="admin-nav" aria-label="Navegação do painel">
+            <button onclick="scrollToAdmin('admin-summary')">Visão geral</button>
+            <button onclick="scrollToAdmin('admin-sales')">Vendas</button>
+            <button onclick="scrollToAdmin('admin-products')">Produtos</button>
+            <button onclick="scrollToAdmin('admin-customers')">Clientes</button>
+            <button onclick="scrollToAdmin('admin-tables')">Mesas</button>
+            <button onclick="scrollToAdmin('admin-security')">Ajustes</button>
+        </nav>
+        <section id="admin-summary" class="admin-summary">
+            <article class="summary-card"><span>Vendas confirmadas</span><strong id="metric-sales">R$ 0,00</strong><small>no dia selecionado</small></article>
+            <article class="summary-card"><span>Pedidos do dia</span><strong id="metric-orders">0</strong><small>incluindo pendentes</small></article>
+            <article class="summary-card"><span>Mesas ocupadas</span><strong id="metric-tables">0</strong><small>comandas em aberto</small></article>
+            <article class="summary-card"><span>Estoque baixo</span><strong id="metric-stock">0</strong><small>produtos com até 5 un.</small></article>
+        </section>
         <main class="admin-container">
             <div class="admin-col-left">
-                <section class="card security-card">
+                <section id="admin-security" class="card security-card">
                     <div class="section-heading"><span class="section-icon">🔐</span><div><h3>Segurança da conta</h3><p>Altere a senha administrativa quando precisar.</p></div></div>
                     <button class="btn-outline" onclick="openPasswordModal()">Trocar senha administrativa</button>
                 </section>
-                <section class="card">
+                <section id="admin-sales" class="card">
                     <h3>Faturamento Diário</h3>
                     <div class="input-date-wrapper" style="margin-bottom: 10px;">
                         <input type="date" id="history-date" onchange="fetchHistory()">
@@ -73,7 +87,7 @@
                     <button onclick="printDailyReport()" class="btn-success" style="width: 100%; margin-top: 15px; font-size: 14px; padding: 12px;">🖨️ Imprimir Fechamento</button>
                 </section>
                 
-                <section class="card">
+                <section id="admin-customers" class="card">
                     <h3>Clientes & Clube de Crédito</h3>
                     <div class="form-group-inline">
                         <input type="text" id="client-name" placeholder="Nome do Cliente">
@@ -83,7 +97,7 @@
                     <ul id="admin-client-list" class="list mini-list"></ul>
                 </section>
 
-                <section class="card">
+                <section id="admin-tables" class="card">
                     <h3>Gerenciar Mesas/Comandas</h3>
                     <div class="form-group-inline">
                         <input type="text" id="table-name" placeholder="Ex: Mesa 01">
@@ -101,7 +115,7 @@
                     <ul id="admin-category-list" class="list mini-list"></ul>
                 </section>
                 
-                <section class="card">
+                <section id="admin-products" class="card">
                     <h3>Cadastrar Produto</h3>
                     <div class="form-group-stack">
                         <label for="prod-name" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; color:#888;">Nome do Produto</label>
@@ -140,6 +154,7 @@
             <div class="admin-col-right">
                 <section class="card">
                     <h3>Produtos no Sistema</h3>
+                    <input id="product-search" class="list-search" type="search" placeholder="Buscar produto ou categoria..." oninput="filterAdminProducts()">
                     <ul id="admin-product-list" class="list tall-list"></ul>
                 </section>
                 <section class="card">

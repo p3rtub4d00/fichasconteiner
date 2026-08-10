@@ -102,6 +102,13 @@ button:active { transform: scale(0.98); }
 .modal-box { box-shadow: 0 24px 70px rgba(0,0,0,.45); }
 .admin-header, #waiter-view > header { background: rgba(20,25,35,.8); backdrop-filter: blur(14px); border: 1px solid var(--border); border-radius: 16px; padding: 14px 18px; margin-bottom: 22px; }
 .admin-header h1, #waiter-view h1 { font-size: 19px; letter-spacing: -.4px; }
+.admin-nav { display:flex; gap:8px; overflow-x:auto; padding:4px 1px 17px; margin-bottom:2px; }
+.admin-nav button { flex:0 0 auto; padding:8px 12px; background:transparent; border:1px solid var(--border); color:var(--text-muted); border-radius:9px; font-size:12px; box-shadow:none; }
+.admin-nav button:hover { color:var(--primary); border-color:var(--primary); background:rgba(246,178,26,.07); }
+.admin-summary { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin:0 0 20px; }
+.summary-card { min-height:112px; padding:17px; border:1px solid var(--border); border-radius:15px; background:linear-gradient(145deg,rgba(29,36,49,.98),rgba(17,22,31,.98)); box-shadow:0 10px 24px rgba(0,0,0,.1); }
+.summary-card span, .summary-card small { display:block; color:var(--text-muted); font-size:11px; }.summary-card strong { display:block; margin:11px 0 6px; color:var(--text-main); font-size:22px; letter-spacing:-.6px; }.summary-card:first-child strong { color:var(--success); }.summary-card:last-child strong { color:var(--primary); }
+.list-search { margin:0 0 12px; }
 .security-card { background: linear-gradient(130deg, rgba(246,178,26,.14), rgba(25,31,43,.98) 55%); }
 .section-heading { display: flex; align-items: center; gap: 11px; margin-bottom: 15px; }
 .section-heading h3 { margin: 0; }
@@ -137,3 +144,4 @@ button:active { transform: scale(0.98); }
     .ticket p { font-size: 10px; margin-top: 5px; }
     .ticket-id { display: inline-block; font-size: 14px; margin-top: 5px; padding: 2px 5px; border: 1px solid #000; background-color: #f0f0f0; letter-spacing: 2px; }
 }
+@media (max-width: 760px) { .admin-summary { grid-template-columns:1fr 1fr; gap:9px; }.summary-card { min-height:96px; padding:14px; }.summary-card strong { font-size:18px; }.admin-header { padding:12px; }.admin-header h1 { font-size:16px; } }

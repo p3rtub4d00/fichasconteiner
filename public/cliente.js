@@ -1,4 +1,4 @@
-const API_URL = '/api';
+﻿const API_URL = '/api';
 
 let catalog = [];
 let cart = [];
@@ -55,7 +55,7 @@ function renderCatalog() {
     const filtered = catalog.filter(p => currentCategory === 'Todas' || p.category === currentCategory);
 
     if (filtered.length === 0) {
-        grid.innerHTML = '<p style="text-align:center; width:100%; color:var(--text-muted);">Nenhum produto disponível nesta categoria.</p>';
+        grid.innerHTML = '<p style="text-align:center; width:100%; color:var(--text-muted);">Nenhum produto disponÃ­vel nesta categoria.</p>';
         return;
     }
 
@@ -64,7 +64,7 @@ function renderCatalog() {
         <div class="card">
             <h3>${p.name}</h3>
             <div class="price">R$ ${p.price.toFixed(2)}</div>
-            <div class="stock">Disponível: ${p.stock}</div>
+            <div class="stock">DisponÃ­vel: ${p.stock}</div>
             <button onclick="addToCart('${p._id}')">Adicionar</button>
         </div>`;
     }).join('');
@@ -165,9 +165,9 @@ async function processPayment(metodo) {
     }
     
     window.currentCustomerName = clientName;
-    window.currentCustomerPhone = clientPhone || 'Não informado';
+    window.currentCustomerPhone = clientPhone || 'NÃ£o informado';
 
-    let paymentString = `Pedido Online: ${metodo} | Pendente (Aguardando Confirmação)`;
+    let paymentString = `Pedido Online: ${metodo} | Pendente (Aguardando ConfirmaÃ§Ã£o)`;
 
     if (metodo === 'Pix') {
         closeModal('checkout-modal');
@@ -187,7 +187,7 @@ async function processPayment(metodo) {
                 const st = await check.json();
                 if (st.status === 'approved') { 
                     clearInterval(pixInterval); 
-                    document.getElementById('pix-status').innerText = '✅ PAGO!'; 
+                    document.getElementById('pix-status').innerText = 'âœ… PAGO!'; 
                     setTimeout(() => finalizeOrder(paymentString), 1500); 
                 }
             }, 3000);
@@ -238,19 +238,19 @@ async function finalizeOrder(paymentMethodString) {
         document.getElementById('success-modal').classList.add('active');
         
     } catch (e) {
-        alert('Erro ao registrar o pedido. Por favor, contate o balcão.');
+        alert('Erro ao registrar o pedido. Por favor, contate o balcÃ£o.');
     }
 }
 
 function setupWhatsAppButton(info, orderCode) {
-    const numeroLoja = "5569999999999";
+    const numeroLoja = "556999695779";
     
-    let texto = `*Olá, acabei de fazer o Pedido #${orderCode} e gostaria de confirmar!*\n\n`;
-    texto += `👤 *Cliente:* ${window.currentCustomerName}\n`;
-    texto += `📞 *Telefone:* ${window.currentCustomerPhone}\n\n`;
+    let texto = `*OlÃ¡, acabei de fazer o Pedido #${orderCode} e gostaria de confirmar!*\n\n`;
+    texto += `ðŸ‘¤ *Cliente:* ${window.currentCustomerName}\n`;
+    texto += `ðŸ“ž *Telefone:* ${window.currentCustomerPhone}\n\n`;
     
     cart.forEach(item => {
-        texto += `▪️ ${item.quantity}x ${item.productName} (R$ ${(item.price * item.quantity).toFixed(2)})\n`;
+        texto += `â–ªï¸ ${item.quantity}x ${item.productName} (R$ ${(item.price * item.quantity).toFixed(2)})\n`;
     });
     
     texto += `\n*Pagamento:* ${info}`;

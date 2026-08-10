@@ -387,6 +387,23 @@ async function loadAdminData() {
     await fetchHistory(); 
     await fetchTablesAdmin(); 
     await loadCustomers(); 
+    updateAdminDashboard();
+}
+
+function scrollToAdmin(id) {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function updateAdminDashboard() {
+    const confirmed = currentDayOrders.filter(order => !order.paymentMethod?.includes('Pendente'));
+    const revenue = confirmed.reduce((total, order) => total + (Number(order.total) || 0), 0);
+    const occupied = allTables.filter(table => table.status === 'ocupada').length;
+    const lowStock = allProducts.filter(product => Number(product.stock) <= 5).length;
+    const setMetric = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+    setMetric('metric-sales', `R$ ${revenue.toFixed(2)}`);
+    setMetric('metric-orders', currentDayOrders.length);
+    setMetric('metric-tables', occupied);
+    setMetric('metric-stock', lowStock);
 }
 
 async function loadCustomers() {
@@ -607,6 +624,7 @@ async function deleteCategory(id) { if(confirm('Excluir?')) { await fetch(`${API
 async function fetchTablesAdmin() {
     const res = await fetch(`${API_URL}/tables`); allTables = await res.json();
     document.getElementById('admin-table-list').innerHTML = allTables.map(t => `<li><span>${t.name}</span> <button class="btn-danger" onclick="deleteTable('${t._id}')">X</button></li>`).join('');
+    updateAdminDashboard();
 }
 async function addTable() {
     const name = document.getElementById('table-name').value;
@@ -700,6 +718,7 @@ async function fetchHistory() {
         </li>`;
     }).join('') || '<p style="text-align:center; color:var(--text-muted); padding:10px;">Nenhuma venda registrada hoje.</p>';
     document.getElementById('total-revenue').innerText = `R$ ${totalRev.toFixed(2)}`;
+    updateAdminDashboard();
 }
 
 function printDailyReport() {
@@ -728,17 +747,28 @@ async function loadWaiterData() {
 
 async function fetchProducts(role) {
     const res = await fetch(`${API_URL}/products`); allProducts = await res.json();
+    updateAdminDashboard();
     
     if (role === 'admin') {
-        const totalEstoque = allProducts.reduce((acc, p) => acc + (p.price * p.stock), 0);
-        let htmlProdutos = `<li style="background: var(--primary); color: white; justify-content: center; font-weight: bold; border-radius: 6px; margin-bottom: 10px;">Valor em Estoque: R$ ${totalEstoque.toFixed(2)}</li>`;
-        htmlProdutos += allProducts.map(p => {
-            return `<li><div><strong>${p.name}</strong> ${p.isWholesale?'<span class="badge-atacado">ATACADO</span>':''}<br><small>Estoque: ${p.stock}</small></div><div style="display:flex; gap:5px; align-items:center;"><span>R$ ${p.price.toFixed(2)}</span><button class="btn-pay" style="margin:0; padding:4px 8px; font-size:12px; background:var(--primary);" onclick="openEditProdModal('${p._id}')">✏️</button><button class="btn-danger" style="margin:0; padding:4px 8px;" onclick="deleteProduct('${p._id}')">X</button></div></li>`;
-        }).join('');
-        document.getElementById('admin-product-list').innerHTML = htmlProdutos;
+        renderAdminProducts(allProducts);
     } else { 
         applyWaiterFilters(); 
     }
+}
+
+function renderAdminProducts(products) {
+        const totalEstoque = products.reduce((acc, p) => acc + (p.price * p.stock), 0);
+        let htmlProdutos = `<li style="background: var(--primary); color: white; justify-content: center; font-weight: bold; border-radius: 6px; margin-bottom: 10px;">Valor em Estoque: R$ ${totalEstoque.toFixed(2)}</li>`;
+        htmlProdutos += products.map(p => {
+            return `<li><div><strong>${p.name}</strong> ${p.isWholesale?'<span class="badge-atacado">ATACADO</span>':''}<br><small>Estoque: ${p.stock}</small></div><div style="display:flex; gap:5px; align-items:center;"><span>R$ ${p.price.toFixed(2)}</span><button class="btn-pay" style="margin:0; padding:4px 8px; font-size:12px; background:var(--primary);" onclick="openEditProdModal('${p._id}')">✏️</button><button class="btn-danger" style="margin:0; padding:4px 8px;" onclick="deleteProduct('${p._id}')">X</button></div></li>`;
+        }).join('');
+        document.getElementById('admin-product-list').innerHTML = htmlProdutos;
+}
+
+function filterAdminProducts() {
+    const search = document.getElementById('product-search')?.value.trim().toLowerCase() || '';
+    const filtered = allProducts.filter(p => `${p.name} ${p.category}`.toLowerCase().includes(search));
+    renderAdminProducts(filtered);
 }
 
 async function fetchTablesWaiter() {
