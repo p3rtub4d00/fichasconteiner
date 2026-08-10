@@ -1,4 +1,4 @@
-const API_URL =[cite: 3] '/api';
+const API_URL = '/api';
 
 let allProducts = [];
 let allCategories = [];
@@ -13,7 +13,7 @@ let currentTableData = null;
 let salesMode = 'retail'; 
 let currentCategory = 'Todas';
 let pendingCheckoutSource = null; 
-let activeModalType = 'fiado'; // 'fiado' ou 'clube'
+let activeModalType = 'fiado';
 
 window.onload = () => {
     applySavedTheme();
@@ -24,7 +24,6 @@ window.onload = () => {
     setInterval(checkNewOrdersForPrint, 5000);
 };
 
-// ================= NAVEGAÇÃO DO GARÇOM (O NOVO MENU) =================
 function openWaiterMenu(menuType) {
     document.getElementById('waiter-home-section').style.display = 'none';
     document.getElementById('caixa-section').style.display = 'none';
@@ -65,20 +64,12 @@ function openWaiterMenu(menuType) {
     }
 }
 
-// ================= LÓGICA DE VENDA AVULSA =================
 async function processAvulsa(method) {
     const valorInput = document.getElementById('avulsa-valor').value;
     const total = parseFloat(valorInput);
-    if (!total || total <= 0) return alert('Por favor, digite um valor válido maior que zero.');
+    if (!total || total <= 0) return alert('Digite um valor válido.');
 
-    const avulsaItem = { 
-        id: null, 
-        productName: 'Venda Avulsa', 
-        price: total, 
-        quantity: 1, 
-        ticketCount: 1, 
-        isWholesale: false 
-    };
+    const avulsaItem = { id: null, productName: 'Venda Avulsa', price: total, quantity: 1, ticketCount: 1, isWholesale: false };
 
     if (method === 'Pix') {
         document.getElementById('pix-modal').classList.add('active');
@@ -89,11 +80,7 @@ async function processAvulsa(method) {
             document.getElementById('pix-qr-container').innerHTML = `<img src="data:image/jpeg;base64,${pixData.qr_code_base64}" style="width:100%; max-width:250px; border-radius:8px;">`;
             pixInterval = setInterval(async () => {
                 const check = await fetch(`${API_URL}/pix/${pixData.id}`); const st = await check.json();
-                if (st.status === 'approved') { 
-                    clearInterval(pixInterval); 
-                    document.getElementById('pix-status-text').innerText = '✅ PAGO!'; 
-                    setTimeout(() => finalizeAvulsa([avulsaItem], total, 'Pix'), 1500); 
-                }
+                if (st.status === 'approved') { clearInterval(pixInterval); document.getElementById('pix-status-text').innerText = '✅ PAGO!'; setTimeout(() => finalizeAvulsa([avulsaItem], total, 'Pix'), 1500); }
             }, 3000);
         } catch (e) { alert('Erro PIX'); cancelPix(); }
     } else {
@@ -103,103 +90,51 @@ async function processAvulsa(method) {
 
 async function finalizeAvulsa(items, total, method) {
     try {
-        await fetch(`${API_URL}/orders`, { 
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ items, total, paymentMethod: method, waiter: 'Garçom' }) 
-        });
+        await fetch(`${API_URL}/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items, total, paymentMethod: method, waiter: 'Garçom' }) });
         document.getElementById('pix-modal').classList.remove('active');
         document.getElementById('avulsa-valor').value = '';
         showToast('✅ Venda Avulsa registrada!');
         openWaiterMenu('home'); 
-    } catch (e) {
-        alert('Erro ao registrar venda avulsa.');
-    }
+    } catch (e) { alert('Erro'); }
 }
 
-// ================= EXCLUIR VENDA E CONFIRMAR DELIVERY =================
 async function deleteOrder(orderId) {
     const senha = prompt("Digite a senha de administrador para excluir esta venda:");
     if (senha === null) return;
-    if (senha !== 'rafaelRAMOS28') {
-        return alert('Senha incorreta! Exclusão cancelada.');
-    }
-
-    if (!confirm('Deseja realmente excluir esta venda? O estoque dos produtos será estornado.')) return;
+    if (senha !== 'rafaelRAMOS28') return alert('Senha incorreta!');
+    if (!confirm('Excluir esta venda e estornar estoque?')) return;
 
     try {
-        const res = await fetch(`${API_URL}/orders/${orderId}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error('Erro ao excluir');
-        showToast('🗑️ Venda excluída e estoque estornado!');
+        await fetch(`${API_URL}/orders/${orderId}`, { method: 'DELETE' });
+        showToast('🗑️ Venda excluída!');
         fetchHistory();
         fetchProducts('admin');
-    } catch (e) {
-        alert('Erro ao excluir a venda.');
-    }
+    } catch (e) { alert('Erro'); }
 }
 
 async function confirmDeliveryPayment(orderId) {
     const method = prompt("Como o cliente pagou? (Ex: Pix, Dinheiro, Cartão)");
     if (!method) return;
-    
     try {
-        const res = await fetch(`${API_URL}/orders/${orderId}/confirm-payment`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ method: method })
-        });
-        if (!res.ok) throw new Error('Erro');
+        await fetch(`${API_URL}/orders/${orderId}/confirm-payment`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method }) });
         showToast('✅ Pagamento confirmado e somado ao faturamento!');
         fetchHistory();
-    } catch (e) {
-        alert('Erro ao confirmar pagamento.');
-    }
+    } catch (e) { alert('Erro'); }
 }
 
 function printDeliveryTicket(orderId) {
     const order = currentDayOrders.find(o => o._id === orderId);
     if (!order) return;
-
     const dateStr = new Date(order.date).toLocaleDateString('pt-BR') + ' ' + new Date(order.date).toLocaleTimeString('pt-BR');
     
-    let printHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white; margin-bottom: 0; page-break-after: always; break-after: page;">
-        <div style="text-align: center;">
-            <h3 style="font-size: 14px; margin-bottom: 2px;">Conteiner Beer</h3>
-            <p style="font-size: 11px; margin: 0; font-weight:bold;">-- PEDIDO ONLINE --</p>
-        </div>
-        <div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div>
-        <div style="margin-bottom: 6px; font-size: 11px;">
-            <strong>Pagamento:</strong><br>
-            ${order.paymentMethod}
-        </div>
-        <div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div>
-        <table style="width: 100%; font-size: 11px; margin-bottom: 5px; border-collapse: collapse;">
-            <tr>
-                <th style="text-align:left; border-bottom: 1px solid #000;">Qtd</th>
-                <th style="text-align:left; border-bottom: 1px solid #000;">Produto</th>
-            </tr>`;
-            
-    if (order.items) {
-        order.items.forEach(item => { 
-            printHTML += `<tr><td>${item.quantity}x</td><td>${item.productName}</td></tr>`; 
-        });
-    }
-    
-    printHTML += `</table>
-        <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
-        <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-bottom: 6px;">
-            <span>TOTAL:</span>
-            <span>R$ ${order.total.toFixed(2)}</span>
-        </div>
-        <div style="text-align: center; font-size: 10px; margin-top: 6px; border-top: 1px dotted #000; padding-top: 4px;">
-            <p style="margin: 4px 0 0 0;">${dateStr}</p>
-        </div>
-    </div>`;
+    let printHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white;"><div style="text-align: center;"><h3 style="font-size: 14px; margin-bottom: 2px;">Conteiner Beer</h3><p style="font-size: 11px; margin: 0; font-weight:bold;">-- PEDIDO ONLINE --</p></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div><table style="width: 100%; font-size: 11px; margin-bottom: 5px;"><tr><th style="text-align:left;">Qtd</th><th style="text-align:left;">Produto</th></tr>`;
+    if (order.items) order.items.forEach(i => { printHTML += `<tr><td>${i.quantity}x</td><td>${i.productName}</td></tr>`; });
+    printHTML += `</table><div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div><div style="text-align: right; font-size: 14px; font-weight: bold;">TOTAL: R$ ${order.total.toFixed(2)}</div><p style="font-size:10px;">${dateStr}</p></div>`;
     
     document.getElementById('print-area').innerHTML = printHTML;
     window.print();
 }
 
-// ================= IMPRESSÃO AUTOMÁTICA =================
 async function checkNewOrdersForPrint() {
     if (!document.getElementById('admin-view').classList.contains('active')) return;
     try {
@@ -215,7 +150,7 @@ async function checkNewOrdersForPrint() {
             printTableConferenceAutomatically(table);
             await fetch(`${API_URL}/tables/${table._id}/clear-print`, { method: 'PUT' });
         }
-    } catch (e) { console.log('Erro na checagem de impressao', e); }
+    } catch (e) { console.log(e); }
 }
 
 function printOrderAutomatically(order) {
@@ -230,17 +165,11 @@ function printOrderAutomatically(order) {
         } 
     });
 
-    if (ticketsToPrint.length > 0) {
-        printTicketsOneByOne(ticketsToPrint, 0);
-    }
+    if (ticketsToPrint.length > 0) printTicketsOneByOne(ticketsToPrint, 0);
 }
 
 function printTicketsOneByOne(tickets, index) {
-    if (index >= tickets.length) {
-        document.getElementById('print-area').innerHTML = ''; 
-        return; 
-    }
-    
+    if (index >= tickets.length) { document.getElementById('print-area').innerHTML = ''; return; }
     document.getElementById('print-area').innerHTML = tickets[index];
     window.print();
     setTimeout(() => { printTicketsOneByOne(tickets, index + 1); }, 2000);
@@ -248,14 +177,9 @@ function printTicketsOneByOne(tickets, index) {
 
 function printTableConferenceAutomatically(table) {
     let subtotal = table.items.reduce((s, i) => s + (i.price * i.quantity), 0);
-    let taxaServico = subtotal * 0.10;
-    let totalComTaxa = subtotal + taxaServico;
-    const dateStr = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR');
-    
-    let printHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white;"><div style="text-align: center;"><h3>Conteiner Beer</h3><h2>${table.name}</h2></div><table style="width: 100%;">`;
-    table.items.forEach(item => { printHTML += `<tr><td>${item.quantity}x</td><td>${item.productName}</td><td style="text-align:right;">R$ ${(item.price * item.quantity).toFixed(2)}</td></tr>`; });
-    printHTML += `</table><strong>Total: R$ ${totalComTaxa.toFixed(2)}</strong></div>`;
-    
+    let printHTML = `<div class="ticket" style="font-family: monospace; font-size: 11px; width: 58mm; padding: 5px;"><h3>Conteiner Beer</h3><h2>${table.name}</h2><table style="width:100%;">`;
+    table.items.forEach(i => { printHTML += `<tr><td>${i.quantity}x</td><td>${i.productName}</td></tr>`; });
+    printHTML += `</table><strong>Total: R$ ${subtotal.toFixed(2)}</strong></div>`;
     document.getElementById('print-area').innerHTML = printHTML;
     window.print();
 }
@@ -264,18 +188,9 @@ function gerarFichaHtml(nome, preco, data, extraHtml) {
     return `<div class="ticket" style="page-break-after: always;"><h3>Conteiner Beer</h3><h2>${nome}</h2>${extraHtml}<h1>R$ ${preco.toFixed(2)}</h1><div class="ticket-id">${generateUniqueId()}</div><p>${data}</p></div>`; 
 }
 
-function toggleTheme() {
-    const isLight = document.body.classList.toggle('light-mode');
-    localStorage.setItem('theme', isLight ? 'light' : 'dark');
-}
-function applySavedTheme() {
-    if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-mode');
-}
-
-function switchView(viewId) {
-    document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
-    document.getElementById(viewId).classList.add('active');
-}
+function toggleTheme() { const isLight = document.body.classList.toggle('light-mode'); localStorage.setItem('theme', isLight ? 'light' : 'dark'); }
+function applySavedTheme() { if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-mode'); }
+function switchView(viewId) { document.querySelectorAll('.view').forEach(el => el.classList.remove('active')); document.getElementById(viewId).classList.add('active'); }
 
 function login() {
     const pin = document.getElementById('pin-input').value;
@@ -285,14 +200,11 @@ function login() {
     document.getElementById('pin-input').value = '';
 }
 function logout() { localStorage.removeItem('userRole'); switchView('login-view'); }
-
 function showToast(message) {
     const toast = document.createElement('div'); toast.className = 'toast-msg';
     toast.innerText = message; document.body.appendChild(toast);
     setTimeout(() => { toast.remove(); }, 2000);
 }
-
-function handleFloatingClick() { activeTableId ? openTableManageModal(activeTableId) : openCartModal(); }
 
 async function loadAdminData() { 
     await fetchCategories(); 
@@ -306,10 +218,8 @@ async function loadCustomers() {
     try {
         const res = await fetch(`${API_URL}/customers`);
         allCustomers = await res.json();
-        if (document.getElementById('admin-view').classList.contains('active')) {
-            renderAdminCustomers();
-        }
-    } catch (error) { console.error("Erro", error); }
+        if (document.getElementById('admin-view').classList.contains('active')) renderAdminCustomers();
+    } catch (e) { console.error(e); }
 }
 
 async function addClient() {
@@ -321,23 +231,15 @@ async function addClient() {
         document.getElementById('client-name').value = ''; document.getElementById('client-phone').value = '';
         showToast('✅ Cliente Cadastrado!');
         await loadCustomers();
-    } catch (error) { alert('Erro'); }
+    } catch (e) { alert('Erro'); }
 }
 
 async function deleteClient(id) { 
-    if(confirm('Remover cliente?')) { 
-        try { await fetch(`${API_URL}/customers/${id}`, { method: 'DELETE' }); await loadCustomers(); } catch (e) { alert('Erro'); }
-    } 
+    if(confirm('Remover?')) { await fetch(`${API_URL}/customers/${id}`, { method: 'DELETE' }); await loadCustomers(); } 
 }
 
 function renderAdminCustomers() {
-    document.getElementById('admin-client-list').innerHTML = allCustomers.map(c => `<li>
-        <span><strong>${c.name}</strong> <small style="display:block; color:var(--primary);">Plano: ${c.clubPlan || 'Nenhum'} | Saldo: R$ ${(c.clubBalance || 0).toFixed(2)}</small></span>
-        <div style="display: flex; gap: 4px;">
-            <button class="btn-pay" style="background: #10b981; color: white; padding: 4px 6px; font-size: 11px;" onclick="openCustomerClubModal('${c._id}')">⭐ Clube</button>
-            <button class="btn-danger" style="padding: 4px 6px; font-size: 11px;" onclick="deleteClient('${c._id}')">X</button>
-        </div>
-    </li>`).join('');
+    document.getElementById('admin-client-list').innerHTML = allCustomers.map(c => `<li><span><strong>${c.name}</strong> <small style="display:block; color:var(--primary);">Saldo: R$ ${(c.clubBalance || 0).toFixed(2)}</small></span><div style="display: flex; gap: 4px;"><button class="btn-pay" style="background: #10b981; color: white; padding: 4px 6px; font-size: 11px;" onclick="openCustomerClubModal('${c._id}')">⭐ Clube</button><button class="btn-danger" style="padding: 4px 6px; font-size: 11px;" onclick="deleteClient('${c._id}')">X</button></div></li>`).join('');
 }
 
 async function openCustomerClubModal(id) {
@@ -361,7 +263,6 @@ async function saveCustomerClub() {
     } catch (e) { alert('Erro'); }
 }
 
-// ================= GERENCIAR CATEGORIAS NO ADMIN =================
 async function fetchCategories() {
     const res = await fetch(`${API_URL}/categories`); 
     allCategories = await res.json();
@@ -455,7 +356,6 @@ async function fetchHistory() {
     
     let totalRev = 0;
     document.getElementById('admin-history-list').innerHTML = currentDayOrders.map(order => {
-        // Bloqueia faturamento se o pedido estiver pendente de confirmação
         const isPending = order.paymentMethod && order.paymentMethod.includes('Pendente');
         if (!isPending) totalRev += order.total;
 

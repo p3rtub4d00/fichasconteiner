@@ -1,4 +1,4 @@
-const API_URL =[cite: 2] '/api';
+const API_URL = '/api';
 
 let catalog = [];
 let cart = [];
@@ -17,7 +17,6 @@ async function fetchCategories() {
         allCategories = await res.json();
         const tabs = document.getElementById('category-tabs');
         
-        // Filtra apenas categorias que permitem exibição no site (showOnline !== false)
         const onlineCategories = allCategories.filter(c => c.showOnline !== false);
         
         let html = `<button class="tab active" onclick="filterCatalog('Todas', this)">Todas</button>`;
@@ -35,10 +34,8 @@ async function fetchCatalog() {
         const res = await fetch(`${API_URL}/products`);
         const allProducts = await res.json();
         
-        // Pega nomes das categorias permitidas no site
         const onlineCatNames = allCategories.filter(c => c.showOnline !== false).map(c => c.name);
         
-        // Puxa produtos com estoque e de categorias visíveis no site
         catalog = allProducts.filter(p => p.stock > 0 && onlineCatNames.includes(p.category));
         renderCatalog();
     } catch (e) {
@@ -160,7 +157,6 @@ function updateCheckoutTotals() {
 }
 
 async function processPayment(metodo) {
-    // Define como pendente para bloquear o faturamento automático até confirmação manual
     let paymentString = `Pedido Online: ${metodo} | Pendente (Aguardando Confirmação)`;
 
     if (metodo === 'Pix') {
@@ -229,9 +225,9 @@ async function finalizeOrder(paymentMethodString) {
 }
 
 function setupWhatsAppButton(info) {
-    const numeroLoja = "5569999999999"; // SEU WHATSAPP
+    const numeroLoja = "5569999999999";
     
-    let texto = `*Olá, acabei de fazer um pedido online e gostaria de confirmar!*[cite: 2]\n\n`;
+    let texto = `*Olá, acabei de fazer um pedido online e gostaria de confirmar!*\n\n`;
     cart.forEach(item => {
         texto += `▪️ ${item.quantity}x ${item.productName} (R$ ${(item.price * item.quantity).toFixed(2)})\n`;
     });
