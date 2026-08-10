@@ -44,6 +44,11 @@ const Customer = mongoose.model('Customer', new mongoose.Schema({
     clubHistory: [{ items: Array, total: Number, date: { type: Date, default: Date.now } }]
 }));
 
+// Rota de Ping para manter o Render acordado
+app.get('/api/ping', (req, res) => {
+    res.status(200).send('pong');
+});
+
 // Função auxiliar para abater do Clube automaticamente
 async function processClubPaymentIfNeeded(paymentMethod, items, total) {
     if (paymentMethod && paymentMethod.startsWith('Clube - ')) {
@@ -248,6 +253,22 @@ app.get('/api/orders/pending', async (req, res) => {
 app.put('/api/orders/:id/printed', async (req, res) => {
     try { await Order.findByIdAndUpdate(req.params.id, { printed: true }); res.json({ success: true }); }
     catch (error) { res.status(500).json({ error: 'Erro' }); }
+});
+
+// NOVA ROTA: Confirmar pagamento de entregas pendentes
+app.put('/api/orders/:id/confirm-payment', async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id);
+        if (!order) return res.status(404).json({ error: 'Pedido não encontrado' });
+        
+        // Remove a string "Na Entrega" e insere a forma de pagamento real informada
+        order.paymentMethod = order.paymentMethod.replace('Na Entrega', `Recebido: ${req.body.method}`);
+        await order.save();
+        
+        res.json({ success: true, msg: 'Pagamento confirmado!' });
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao confirmar pagamento' });
+    }
 });
 
 app.delete('/api/orders/:id', async (req, res) => {
