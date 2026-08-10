@@ -17,6 +17,7 @@ async function fetchCategories() {
         allCategories = await res.json();
         const tabs = document.getElementById('category-tabs');
         
+        // Filtra apenas categorias que permitem exibição no site (showOnline !== false)
         const onlineCategories = allCategories.filter(c => c.showOnline !== false);
         
         let html = `<button class="tab active" onclick="filterCatalog('Todas', this)">Todas</button>`;
@@ -210,8 +211,14 @@ async function finalizeOrder(paymentMethodString) {
         });
         
         if (!res.ok) throw new Error('Erro');
+        const data = await res.json();
+        const orderCode = data.order ? data.order.orderNumber : 'ONLINE';
         
-        setupWhatsAppButton(paymentMethodString);
+        if(document.getElementById('success-order-id')) {
+            document.getElementById('success-order-id').innerText = `Pedido #${orderCode}`;
+        }
+        
+        setupWhatsAppButton(paymentMethodString, orderCode);
 
         cart = [];
         updateCartUI();
@@ -224,10 +231,10 @@ async function finalizeOrder(paymentMethodString) {
     }
 }
 
-function setupWhatsAppButton(info) {
+function setupWhatsAppButton(info, orderCode) {
     const numeroLoja = "5569999999999";
     
-    let texto = `*Olá, acabei de fazer um pedido online e gostaria de confirmar!*\n\n`;
+    let texto = `*Olá, acabei de fazer o Pedido #${orderCode} e gostaria de confirmar!*\n\n`;
     cart.forEach(item => {
         texto += `▪️ ${item.quantity}x ${item.productName} (R$ ${(item.price * item.quantity).toFixed(2)})\n`;
     });
