@@ -14,6 +14,7 @@ let salesMode = 'retail';
 let currentCategory = 'Todas';
 let pendingCheckoutSource = null; 
 let activeModalType = 'fiado'; // 'fiado' ou 'clube'
+let splitPaymentSource = null;
 
 window.onload = () => {
     applySavedTheme();
@@ -387,7 +388,35 @@ async function loadAdminData() {
     await fetchHistory(); 
     await fetchTablesAdmin(); 
     await loadCustomers(); 
+    await loadCashSupplies();
+    await loadShoppingList();
     updateAdminDashboard();
+}
+
+async function loadCashSupplies() {
+    try {
+        const supplies = await (await fetch(`${API_URL}/cash-supplies`)).json();
+        const total = supplies.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        document.getElementById('cash-supply-summary').textContent = `Fundo de troco de hoje: R$ ${total.toFixed(2)}`;
+    } catch (error) { console.error('Erro ao carregar suprimento de caixa', error); }
+}
+async function addCashSupply() {
+    const amount = Number(document.getElementById('cash-supply-amount').value);
+    const note = document.getElementById('cash-supply-note').value.trim();
+    if (!amount || amount <= 0) return alert('Informe um valor válido para o fundo de troco.');
+    try {
+        const res = await fetch(`${API_URL}/cash-supplies`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount, note }) });
+        if (!res.ok) throw new Error('Erro');
+        document.getElementById('cash-supply-amount').value = ''; document.getElementById('cash-supply-note').value = '';
+        await loadCashSupplies(); showToast('Suprimento de caixa registrado.');
+    } catch (error) { alert('Não foi possível registrar o suprimento.'); }
+}
+async function loadShoppingList() {
+    try {
+        const products = await (await fetch(`${API_URL}/products/shopping-list`)).json();
+        const list = document.getElementById('shopping-list');
+        list.innerHTML = products.length ? products.map(p => `<li><span><strong>${p.name}</strong><small style="display:block;color:var(--text-muted)">Estoque: ${p.stock} · mínimo: ${p.minStock ?? 5}</small></span><span class="stock-alert">Repor</span></li>`).join('') : '<li class="empty-list">Tudo certo: nenhum produto precisa de reposição.</li>';
+    } catch (error) { console.error('Erro ao carregar lista de compras', error); }
 }
 
 function scrollToAdmin(id) {
@@ -859,6 +888,35 @@ async function processTableCheckout(method) {
             }, 3000);
         } catch (e) { alert('Erro PIX'); cancelPix(); }
     } else { finalizeTableOrder(finalData); }
+}
+
+function getSplitTotal() {
+    if (splitPaymentSource === 'mesa') {
+        const subtotal = currentTableData.items.reduce((s, i) => s + (i.price * i.quantity), 0);
+        return subtotal + (document.getElementById('tc-tax').checked ? subtotal * 0.10 : 0);
+    }
+    return cart.reduce((s, i) => s + (i.price * i.quantity), 0);
+}
+function openSplitPayment(source) {
+    splitPaymentSource = source;
+    const total = getSplitTotal();
+    document.getElementById('split-cash').value = '0'; document.getElementById('split-card').value = '0'; document.getElementById('split-pix').value = '0';
+    document.getElementById('split-payment-total').innerHTML = `Total: <strong>R$ ${total.toFixed(2)}</strong>`;
+    document.getElementById('split-payment-modal').classList.add('active'); updateSplitPayment();
+}
+function closeSplitPayment() { document.getElementById('split-payment-modal').classList.remove('active'); }
+function updateSplitPayment() {
+    const total = getSplitTotal(); const received = ['split-cash', 'split-card', 'split-pix'].reduce((sum, id) => sum + (Number(document.getElementById(id).value) || 0), 0);
+    const difference = total - received; const el = document.getElementById('split-payment-balance');
+    el.textContent = Math.abs(difference) < .005 ? 'Valores conferidos.' : difference > 0 ? `Faltam R$ ${difference.toFixed(2)}.` : `Excedeu R$ ${Math.abs(difference).toFixed(2)}.`;
+    el.style.color = Math.abs(difference) < .005 ? 'var(--success)' : 'var(--danger)';
+}
+function confirmSplitPayment() {
+    const total = getSplitTotal(); const values = { Dinheiro: Number(document.getElementById('split-cash').value) || 0, Cartao: Number(document.getElementById('split-card').value) || 0, Pix: Number(document.getElementById('split-pix').value) || 0 };
+    if (Math.abs(Object.values(values).reduce((a, b) => a + b, 0) - total) > .005) return alert('Os valores precisam fechar exatamente o total.');
+    const method = Object.entries(values).filter(([, value]) => value > 0).map(([name, value]) => `${name} R$ ${value.toFixed(2)}`).join(' + ');
+    closeSplitPayment();
+    if (splitPaymentSource === 'mesa') processTableCheckout(method); else processCheckout(method);
 }
 
 async function finalizeTableOrder(data) {

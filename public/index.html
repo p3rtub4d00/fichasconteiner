@@ -86,6 +86,18 @@
                     <h2 id="total-revenue">R$ 0,00</h2>
                     <button onclick="printDailyReport()" class="btn-success" style="width: 100%; margin-top: 15px; font-size: 14px; padding: 12px;">🖨️ Imprimir Fechamento</button>
                 </section>
+                <section class="card">
+                    <h3>Suprimento de Caixa</h3>
+                    <p class="section-note">Registre o fundo de troco colocado no caixa. Ele não é uma venda.</p>
+                    <div class="form-group-inline"><input id="cash-supply-amount" type="number" min="0.01" step="0.01" placeholder="Valor inicial (R$)"><button onclick="addCashSupply()">Registrar</button></div>
+                    <input id="cash-supply-note" type="text" placeholder="Observação (opcional)">
+                    <div id="cash-supply-summary" class="cash-summary">Fundo de troco de hoje: R$ 0,00</div>
+                </section>
+                <section class="card">
+                    <h3>Lista de Compras</h3>
+                    <p class="section-note">Produtos no estoque mínimo ou abaixo dele.</p>
+                    <ul id="shopping-list" class="list mini-list"></ul>
+                </section>
                 
                 <section id="admin-customers" class="card">
                     <h3>Clientes & Clube de Crédito</h3>
@@ -337,6 +349,7 @@
                 <button class="btn-pay" onclick="processTableCheckout('Dinheiro')">💵 Dinheiro</button>
                 <button class="btn-pay" onclick="processTableCheckout('Cartao')">💳 Cartão</button>
                 <button class="btn-pay pix-btn" onclick="processTableCheckout('Pix')">💠 PIX</button>
+                <button class="btn-pay" onclick="openSplitPayment('mesa')">➗ Dividir pagamento</button>
                 <button class="btn-pay" style="background: #f59e0b; color: white; border-color: #d97706;" onclick="openCustomerModal('mesa', 'fiado')">📒 Fiado</button>
                 <button class="btn-pay" style="background: #10b981; color: white; border-color: #059669;" onclick="openCustomerModal('mesa', 'clube')">⭐ Clube</button>
             </div>
@@ -355,6 +368,7 @@
                 <button class="btn-pay" onclick="processCheckout('Dinheiro')">💵 Dinheiro</button>
                 <button class="btn-pay" onclick="processCheckout('Cartao')">💳 Cartão</button>
                 <button class="btn-pay pix-btn" onclick="processCheckout('Pix')">💠 PIX</button>
+                <button class="btn-pay" onclick="openSplitPayment('caixa')">➗ Dividir pagamento</button>
                 <button class="btn-pay" style="background: #f59e0b; color: white; border-color: #d97706;" onclick="openCustomerModal('caixa', 'fiado')">📒 Fiado</button>
                 <button class="btn-pay" style="background: #10b981; color: white; border-color: #059669;" onclick="openCustomerModal('caixa', 'clube')">⭐ Clube</button>
             </div>
@@ -372,6 +386,13 @@
             <button class="btn-danger" onclick="cancelPix()">Cancelar</button>
         </div>
     </div>
+
+    <div id="split-payment-modal" class="modal"><div class="modal-box">
+        <h2>Pagamento dividido</h2><p class="modal-help">Informe os valores recebidos. O total deve fechar exatamente a venda.</p>
+        <div id="split-payment-total" class="modal-total">Total: <strong>R$ 0,00</strong></div>
+        <div class="split-fields"><label>Dinheiro<input id="split-cash" type="number" min="0" step="0.01" value="0" oninput="updateSplitPayment()"></label><label>Cartão<input id="split-card" type="number" min="0" step="0.01" value="0" oninput="updateSplitPayment()"></label><label>PIX<input id="split-pix" type="number" min="0" step="0.01" value="0" oninput="updateSplitPayment()"></label></div>
+        <p id="split-payment-balance" class="modal-help"></p><div class="modal-actions"><button class="btn-outline" onclick="closeSplitPayment()">Cancelar</button><button onclick="confirmSplitPayment()">Confirmar</button></div>
+    </div></div>
     
     <!-- MODAL EDITAR PRODUTO -->
     <div id="edit-prod-modal" class="modal">

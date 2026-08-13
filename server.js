@@ -24,7 +24,11 @@ const Category = mongoose.model('Category', new mongoose.Schema({
 }));
 const Product = mongoose.model('Product', new mongoose.Schema({ 
     name: String, price: Number, category: String, stock: { type: Number, default: 0 },
-    ticketCount: { type: Number, default: 1 }, isWholesale: { type: Boolean, default: false } 
+    ticketCount: { type: Number, default: 1 }, isWholesale: { type: Boolean, default: false },
+    minStock: { type: Number, default: 5 }
+}));
+const CashSupply = mongoose.model('CashSupply', new mongoose.Schema({
+    amount: { type: Number, required: true }, note: { type: String, default: '' }, date: { type: Date, default: Date.now }
 }));
 const Order = mongoose.model('Order', new mongoose.Schema({
     orderNumber: { type: String, default: () => Math.random().toString(36).substring(2, 6).toUpperCase() },
@@ -234,6 +238,26 @@ app.get('/api/products', async (req, res) => res.json(await Product.find()));
 app.post('/api/products', async (req, res) => res.json(await new Product(req.body).save()));
 app.put('/api/products/:id', async (req, res) => { await Product.findByIdAndUpdate(req.params.id, req.body); res.json({ msg: 'Produto atualizado' }); });
 app.delete('/api/products/:id', async (req, res) => { await Product.findByIdAndDelete(req.params.id); res.json({ msg: 'OK' }); });
+app.get('/api/products/shopping-list', async (req, res) => {
+    try { res.json(await Product.find({ $expr: { $lte: ['$stock', '$minStock'] } }).sort({ stock: 1, name: 1 })); }
+    catch (error) { res.status(500).json({ error: 'Erro ao gerar lista de compras' }); }
+});
+
+// ================= CAIXA =================
+app.get('/api/cash-supplies', async (req, res) => {
+    try {
+        const start = new Date(); start.setHours(0, 0, 0, 0);
+        const end = new Date(); end.setHours(23, 59, 59, 999);
+        res.json(await CashSupply.find({ date: { $gte: start, $lte: end } }).sort({ date: -1 }));
+    } catch (error) { res.status(500).json({ error: 'Erro ao buscar suprimentos' }); }
+});
+app.post('/api/cash-supplies', async (req, res) => {
+    try {
+        const amount = Number(req.body.amount);
+        if (!amount || amount <= 0) return res.status(400).json({ error: 'Informe um valor maior que zero' });
+        res.status(201).json(await new CashSupply({ amount, note: String(req.body.note || '') }).save());
+    } catch (error) { res.status(500).json({ error: 'Erro ao registrar suprimento' }); }
+});
 
 // ================= ROTAS DE MESAS =================
 app.get('/api/tables', async (req, res) => res.json(await Table.find().sort({ name: 1 })));
