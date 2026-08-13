@@ -240,7 +240,15 @@ app.post('/api/products', async (req, res) => res.json(await new Product(req.bod
 app.put('/api/products/:id', async (req, res) => { await Product.findByIdAndUpdate(req.params.id, req.body); res.json({ msg: 'Produto atualizado' }); });
 app.delete('/api/products/:id', async (req, res) => { await Product.findByIdAndDelete(req.params.id); res.json({ msg: 'OK' }); });
 app.get('/api/products/shopping-list', async (req, res) => {
-    try { res.json(await Product.find({ $expr: { $lte: ['$stock', '$minStock'] } }).sort({ stock: 1, name: 1 })); }
+    try {
+        // Produtos criados antes do campo minStock usam 5 como padrão.
+        const products = await Product.aggregate([
+            { $addFields: { effectiveMinStock: { $ifNull: ['$minStock', 5] } } },
+            { $match: { $expr: { $lte: ['$stock', '$effectiveMinStock'] } } },
+            { $sort: { stock: 1, name: 1 } }
+        ]);
+        res.json(products.map(({ effectiveMinStock, ...product }) => ({ ...product, minStock: effectiveMinStock })));
+    }
     catch (error) { res.status(500).json({ error: 'Erro ao gerar lista de compras' }); }
 });
 
