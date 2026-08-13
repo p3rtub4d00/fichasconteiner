@@ -210,6 +210,12 @@ async function checkNewOrdersForPrint() {
 
 function printOrderAutomatically(order) {
     const dateStr = new Date(order.date).toLocaleDateString('pt-BR') + ' ' + new Date(order.date).toLocaleTimeString('pt-BR');
+
+    // Comanda fechada: uma única via consolidada, jamais uma ficha por item.
+    if (order.orderType === 'table') {
+        printTableCheckoutReceipt(order, dateStr);
+        return;
+    }
     
     const retailItems = order.items ? order.items.filter(i => !i.isWholesale) : []; 
     const wholesaleItems = order.items ? order.items.filter(i => i.isWholesale) : [];
@@ -240,6 +246,17 @@ function printOrderAutomatically(order) {
     if (ticketsToPrint.length > 0) {
         printTicketsOneByOne(ticketsToPrint, 0);
     }
+}
+
+function printTableCheckoutReceipt(order, dateStr) {
+    const items = Array.isArray(order.items) ? order.items : [];
+    let html = `<div class="ticket" style="text-align:left;font-family:monospace;font-size:11px;width:58mm;padding:5px;color:black;background:white;page-break-after:always;break-after:page;">
+        <div style="text-align:center"><h3 style="margin:0">Conteiner Beer</h3><p style="margin:3px 0;font-weight:bold">FECHAMENTO DE COMANDA</p><h2 style="margin:3px 0">${order.tableName || 'Mesa'}</h2></div>
+        <div style="border-bottom:1px dashed #000;margin:6px 0"></div><table style="width:100%;font-size:11px"><tr><th style="text-align:left">Qtd</th><th style="text-align:left">Item</th><th style="text-align:right">Total</th></tr>`;
+    items.forEach(item => { html += `<tr><td>${item.quantity}x</td><td>${item.productName}</td><td style="text-align:right">R$ ${(item.price * item.quantity).toFixed(2)}</td></tr>`; });
+    html += `</table><div style="border-bottom:1px dashed #000;margin:6px 0"></div><div style="text-align:right;font-size:14px;font-weight:bold">TOTAL: R$ ${Number(order.total || 0).toFixed(2)}</div><p style="margin:5px 0 0">Pagamento: ${order.paymentMethod || 'Não informado'}</p><p style="text-align:center;font-size:10px">${dateStr}</p></div>`;
+    document.getElementById('print-area').innerHTML = html;
+    window.print();
 }
 
 function printTicketsOneByOne(tickets, index) {

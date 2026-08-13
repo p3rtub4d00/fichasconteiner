@@ -34,7 +34,8 @@ const Order = mongoose.model('Order', new mongoose.Schema({
     orderNumber: { type: String, default: () => Math.random().toString(36).substring(2, 6).toUpperCase() },
     customerName: { type: String, default: '' },
     customerPhone: { type: String, default: '' },
-    items: Array, total: Number, paymentMethod: String, waiter: String, 
+    items: Array, total: Number, paymentMethod: String, waiter: String,
+    orderType: { type: String, default: 'sale' }, tableName: { type: String, default: '' },
     date: { type: Date, default: Date.now },
     settled: { type: Boolean, default: false },
     printed: { type: Boolean, default: false }
@@ -298,6 +299,8 @@ app.post('/api/tables/:id/checkout', async (req, res) => {
             total: req.body.total, 
             paymentMethod: req.body.paymentMethod, 
             waiter: req.body.waiter || 'Garçom',
+            orderType: 'table',
+            tableName: table.name,
             settled: false,
             printed: false
         }).save();
