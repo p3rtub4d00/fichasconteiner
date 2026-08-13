@@ -15,6 +15,7 @@ let currentCategory = 'Todas';
 let pendingCheckoutSource = null; 
 let activeModalType = 'fiado'; // 'fiado' ou 'clube'
 let splitPaymentSource = null;
+let shoppingListProducts = [];
 
 window.onload = () => {
     applySavedTheme();
@@ -431,9 +432,17 @@ async function addCashSupply() {
 async function loadShoppingList() {
     try {
         const products = await (await fetch(`${API_URL}/products/shopping-list`)).json();
+        shoppingListProducts = Array.isArray(products) ? products : [];
         const list = document.getElementById('shopping-list');
-        list.innerHTML = products.length ? products.map(p => `<li><span><strong>${p.name}</strong><small style="display:block;color:var(--text-muted)">Estoque: ${p.stock} · mínimo: ${p.minStock ?? 5}</small></span><span class="stock-alert">Repor</span></li>`).join('') : '<li class="empty-list">Tudo certo: nenhum produto precisa de reposição.</li>';
+        list.innerHTML = shoppingListProducts.length ? shoppingListProducts.map(p => `<li><span><strong>${p.name}</strong><small style="display:block;color:var(--text-muted)">Estoque: ${p.stock} · mínimo: ${p.minStock ?? 5}</small></span><span class="stock-alert">Repor</span></li>`).join('') : '<li class="empty-list">Tudo certo: nenhum produto precisa de reposição.</li>';
     } catch (error) { console.error('Erro ao carregar lista de compras', error); }
+}
+function printShoppingList() {
+    if (!shoppingListProducts.length) return alert('Não há produtos para repor no momento.');
+    const printedAt = new Date().toLocaleString('pt-BR');
+    const rows = shoppingListProducts.map(p => `<tr><td>${p.name}</td><td style="text-align:center">${p.stock}</td><td style="text-align:center">${p.minStock ?? 5}</td><td style="width:30px">☐</td></tr>`).join('');
+    document.getElementById('print-area').innerHTML = `<div class="ticket shopping-print" style="text-align:left;font-family:monospace;font-size:11px;width:58mm;padding:5px;color:black;background:white"><div style="text-align:center"><h3 style="margin:0">Conteiner Beer</h3><h2 style="margin:5px 0">LISTA DE COMPRAS</h2><p style="margin:0">${printedAt}</p></div><div style="border-bottom:1px dashed #000;margin:7px 0"></div><table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left">Produto</th><th>Atual</th><th>Mín.</th><th></th></tr></thead><tbody>${rows}</tbody></table><div style="border-top:1px dashed #000;margin-top:8px;padding-top:5px;font-size:10px">${shoppingListProducts.length} produto(s) para reposição.</div></div>`;
+    window.print();
 }
 
 function scrollToAdmin(id) {
