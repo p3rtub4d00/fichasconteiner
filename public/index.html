@@ -59,12 +59,12 @@
             <button onclick="logout()" class="btn-danger">Sair</button>
         </header>
         <nav class="admin-nav" aria-label="Navegação do painel">
-            <button onclick="scrollToAdmin('admin-summary')">Visão geral</button>
-            <button onclick="scrollToAdmin('admin-sales')">Vendas</button>
-            <button onclick="scrollToAdmin('admin-products')">Produtos</button>
-            <button onclick="scrollToAdmin('admin-customers')">Clientes</button>
-            <button onclick="scrollToAdmin('admin-tables')">Mesas</button>
-            <button onclick="scrollToAdmin('admin-security')">Ajustes</button>
+            <button class="active" data-admin-page="overview" onclick="openAdminPage('overview')"><span>▦</span> Visão geral</button>
+            <button data-admin-page="sales" onclick="openAdminPage('sales')"><span>◫</span> Vendas & Caixa</button>
+            <button data-admin-page="products" onclick="openAdminPage('products')"><span>□</span> Produtos</button>
+            <button data-admin-page="customers" onclick="openAdminPage('customers')"><span>♙</span> Clientes</button>
+            <button data-admin-page="tables" onclick="openAdminPage('tables')"><span>⌘</span> Mesas</button>
+            <button data-admin-page="settings" onclick="openAdminPage('settings')"><span>⚙</span> Ajustes</button>
         </nav>
         <section id="admin-summary" class="admin-summary">
             <article class="summary-card"><span>Vendas confirmadas</span><strong id="metric-sales">R$ 0,00</strong><small>no dia selecionado</small></article>
@@ -72,13 +72,13 @@
             <article class="summary-card"><span>Mesas ocupadas</span><strong id="metric-tables">0</strong><small>comandas em aberto</small></article>
             <article class="summary-card"><span>Estoque baixo</span><strong id="metric-stock">0</strong><small>produtos com até 5 un.</small></article>
         </section>
-        <main class="admin-container">
+        <main class="admin-container admin-workspace">
             <div class="admin-col-left">
-                <section id="admin-security" class="card security-card">
+                <section id="admin-security" data-admin-section="settings" class="card security-card">
                     <div class="section-heading"><span class="section-icon">🔐</span><div><h3>Segurança da conta</h3><p>Altere a senha administrativa quando precisar.</p></div></div>
                     <button class="btn-outline" onclick="openPasswordModal()">Trocar senha administrativa</button>
                 </section>
-                <section id="admin-sales" class="card">
+                <section id="admin-sales" data-admin-section="sales" class="card">
                     <h3>Faturamento Diário</h3>
                     <div class="input-date-wrapper" style="margin-bottom: 10px;">
                         <input type="date" id="history-date" onchange="fetchHistory()">
@@ -86,21 +86,21 @@
                     <h2 id="total-revenue">R$ 0,00</h2>
                     <button onclick="printDailyReport()" class="btn-success" style="width: 100%; margin-top: 15px; font-size: 14px; padding: 12px;">🖨️ Imprimir Fechamento</button>
                 </section>
-                <section class="card">
+                <section data-admin-section="sales" class="card">
                     <h3>Suprimento de Caixa</h3>
                     <p class="section-note">Registre o fundo de troco colocado no caixa. Ele não é uma venda.</p>
                     <div class="form-group-inline"><input id="cash-supply-amount" type="number" min="0.01" step="0.01" placeholder="Valor inicial (R$)"><button onclick="addCashSupply()">Registrar</button></div>
                     <input id="cash-supply-note" type="text" placeholder="Observação (opcional)">
                     <div id="cash-supply-summary" class="cash-summary">Fundo de troco de hoje: R$ 0,00</div>
                 </section>
-                <section class="card">
+                <section data-admin-section="products" class="card">
                     <h3>Lista de Compras</h3>
                     <p class="section-note">Produtos no estoque mínimo ou abaixo dele.</p>
                     <ul id="shopping-list" class="list mini-list"></ul>
                     <button class="btn-outline" style="width:100%; margin-top:10px;" onclick="printShoppingList()">🖨️ Imprimir lista</button>
                 </section>
                 
-                <section id="admin-customers" class="card">
+                <section id="admin-customers" data-admin-section="customers" class="card">
                     <h3>Clientes & Clube de Crédito</h3>
                     <div class="form-group-inline">
                         <input type="text" id="client-name" placeholder="Nome do Cliente">
@@ -110,7 +110,7 @@
                     <ul id="admin-client-list" class="list mini-list"></ul>
                 </section>
 
-                <section id="admin-tables" class="card">
+                <section id="admin-tables" data-admin-section="tables" class="card">
                     <h3>Gerenciar Mesas/Comandas</h3>
                     <div class="form-group-inline">
                         <input type="text" id="table-name" placeholder="Ex: Mesa 01">
@@ -119,7 +119,7 @@
                     <ul id="admin-table-list" class="list mini-list"></ul>
                 </section>
 
-                <section class="card">
+                <section data-admin-section="products" class="card">
                     <h3>Gerenciar Categorias</h3>
                     <div class="form-group-inline">
                         <input type="text" id="cat-name" placeholder="Nome da Categoria">
@@ -128,7 +128,7 @@
                     <ul id="admin-category-list" class="list mini-list"></ul>
                 </section>
                 
-                <section id="admin-products" class="card">
+                <section id="admin-products" data-admin-section="products" class="card">
                     <h3>Cadastrar Produto</h3>
                     <div class="form-group-stack">
                         <label for="prod-name" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; color:#888;">Nome do Produto</label>
@@ -165,12 +165,12 @@
             </div>
             
             <div class="admin-col-right">
-                <section class="card">
+                <section data-admin-section="products" class="card">
                     <h3>Produtos no Sistema</h3>
                     <input id="product-search" class="list-search" type="search" placeholder="Buscar produto ou categoria..." oninput="filterAdminProducts()">
                     <ul id="admin-product-list" class="list tall-list"></ul>
                 </section>
-                <section class="card">
+                <section data-admin-section="sales" class="card">
                     <h3>Histórico de Vendas</h3>
                     <ul id="admin-history-list" class="list tall-list"></ul>
                 </section>

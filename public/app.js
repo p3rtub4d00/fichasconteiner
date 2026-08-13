@@ -403,6 +403,7 @@ function showToast(message) {
 function handleFloatingClick() { activeTableId ? openTableManageModal(activeTableId) : openCartModal(); }
 
 async function loadAdminData() { 
+    openAdminPage('overview');
     await fetchCategories(); 
     await fetchProducts('admin'); 
     await fetchHistory(); 
@@ -449,6 +450,19 @@ function printShoppingList() {
 
 function scrollToAdmin(id) {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function openAdminPage(page) {
+    const isOverview = page === 'overview';
+    document.getElementById('admin-summary').style.display = isOverview ? 'grid' : 'none';
+    document.querySelector('.admin-workspace').style.display = isOverview ? 'none' : 'grid';
+    document.querySelectorAll('[data-admin-section]').forEach(section => {
+        section.style.display = section.dataset.adminSection === page ? '' : 'none';
+    });
+    document.querySelectorAll('.admin-nav [data-admin-page]').forEach(button => {
+        button.classList.toggle('active', button.dataset.adminPage === page);
+    });
+    document.getElementById('admin-view').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function updateAdminDashboard() {
