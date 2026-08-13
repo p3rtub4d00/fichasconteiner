@@ -389,10 +389,11 @@
     </div>
 
     <div id="split-payment-modal" class="modal"><div class="modal-box">
-        <h2>Pagamento dividido</h2><p class="modal-help">Informe os valores recebidos. O total deve fechar exatamente a venda.</p>
+        <h2>Adicionar pagamentos</h2><p class="modal-help">Adicione quantas parcelas precisar. Cada PIX gera seu próprio QR Code.</p>
         <div id="split-payment-total" class="modal-total">Total: <strong>R$ 0,00</strong></div>
-        <div class="split-fields"><label>Dinheiro<input id="split-cash" type="number" min="0" step="0.01" value="0" oninput="updateSplitPayment()"></label><label>Cartão<input id="split-card" type="number" min="0" step="0.01" value="0" oninput="updateSplitPayment()"></label><label>PIX<input id="split-pix" type="number" min="0" step="0.01" value="0" oninput="updateSplitPayment()"></label></div>
-        <p id="split-payment-balance" class="modal-help"></p><div class="modal-actions"><button class="btn-outline" onclick="closeSplitPayment()">Cancelar</button><button onclick="confirmSplitPayment()">Confirmar</button></div>
+        <div id="split-payment-list" class="list split-payment-list"></div>
+        <div class="split-add"><select id="split-method"><option value="Dinheiro">Dinheiro</option><option value="Cartao">Cartão</option><option value="Pix">PIX</option></select><input id="split-amount" type="number" min="0.01" step="0.01" placeholder="Valor (R$)"><button onclick="addSplitPayment()">Adicionar</button></div>
+        <p id="split-payment-balance" class="modal-help"></p><div class="modal-actions"><button class="btn-outline" onclick="closeSplitPayment()">Cancelar</button><button onclick="confirmSplitPayment()">Concluir venda</button></div>
     </div></div>
     
     <!-- MODAL EDITAR PRODUTO -->

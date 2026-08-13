@@ -15,6 +15,8 @@ let currentCategory = 'Todas';
 let pendingCheckoutSource = null; 
 let activeModalType = 'fiado'; // 'fiado' ou 'clube'
 let splitPaymentSource = null;
+let splitPayments = [];
+let pendingSplitPixIndex = null;
 let shoppingListProducts = [];
 
 window.onload = () => {
@@ -926,21 +928,55 @@ function getSplitTotal() {
 function openSplitPayment(source) {
     splitPaymentSource = source;
     const total = getSplitTotal();
-    document.getElementById('split-cash').value = '0'; document.getElementById('split-card').value = '0'; document.getElementById('split-pix').value = '0';
+    splitPayments = [];
+    document.getElementById('split-amount').value = '';
     document.getElementById('split-payment-total').innerHTML = `Total: <strong>R$ ${total.toFixed(2)}</strong>`;
     document.getElementById('split-payment-modal').classList.add('active'); updateSplitPayment();
 }
-function closeSplitPayment() { document.getElementById('split-payment-modal').classList.remove('active'); }
+function closeSplitPayment() { document.getElementById('split-payment-modal').classList.remove('active'); splitPayments = []; pendingSplitPixIndex = null; }
 function updateSplitPayment() {
-    const total = getSplitTotal(); const received = ['split-cash', 'split-card', 'split-pix'].reduce((sum, id) => sum + (Number(document.getElementById(id).value) || 0), 0);
-    const difference = total - received; const el = document.getElementById('split-payment-balance');
-    el.textContent = Math.abs(difference) < .005 ? 'Valores conferidos.' : difference > 0 ? `Faltam R$ ${difference.toFixed(2)}.` : `Excedeu R$ ${Math.abs(difference).toFixed(2)}.`;
-    el.style.color = Math.abs(difference) < .005 ? 'var(--success)' : 'var(--danger)';
+    const total = getSplitTotal();
+    const paid = splitPayments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0);
+    const pending = splitPayments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0);
+    const difference = total - paid - pending; const el = document.getElementById('split-payment-balance');
+    el.textContent = Math.abs(difference) < .005 ? (pending ? `Aguardando R$ ${pending.toFixed(2)} em PIX.` : 'Pagamentos conferidos.') : difference > 0 ? `Faltam R$ ${difference.toFixed(2)}.` : `Excedeu R$ ${Math.abs(difference).toFixed(2)}.`;
+    el.style.color = Math.abs(difference) < .005 && !pending ? 'var(--success)' : 'var(--danger)';
+    document.getElementById('split-payment-list').innerHTML = splitPayments.length ? splitPayments.map((p, index) => `<li><span><strong>${p.method}</strong><small style="display:block;color:var(--text-muted)">${p.status === 'paid' ? '✓ Pago' : '⌛ Aguardando PIX'}</small></span><div><strong>R$ ${p.amount.toFixed(2)}</strong>${p.status === 'paid' ? '' : `<button class="btn-danger" onclick="removeSplitPayment(${index})">×</button>`}</div></li>`).join('') : '<p class="empty-list">Nenhuma parcela adicionada.</p>';
+}
+function removeSplitPayment(index) { if (splitPayments[index]?.status === 'pending') splitPayments.splice(index, 1); updateSplitPayment(); }
+async function addSplitPayment() {
+    const method = document.getElementById('split-method').value;
+    const amount = Number(document.getElementById('split-amount').value);
+    const committed = splitPayments.reduce((sum, p) => sum + p.amount, 0);
+    if (!amount || amount <= 0) return alert('Informe um valor válido.');
+    if (amount > getSplitTotal() - committed + .005) return alert('O valor é maior que o saldo restante.');
+    const payment = { method, amount, status: method === 'Pix' ? 'pending' : 'paid' };
+    splitPayments.push(payment); document.getElementById('split-amount').value = ''; updateSplitPayment();
+    if (method !== 'Pix') return;
+    pendingSplitPixIndex = splitPayments.length - 1;
+    document.getElementById('split-payment-modal').classList.remove('active');
+    document.getElementById('pix-modal').classList.add('active'); document.getElementById('pix-qr-container').innerHTML = '<p>Gerando...</p>';
+    try {
+        const res = await fetch(`${API_URL}/pix`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ total: amount }) });
+        if (!res.ok) throw new Error('Erro PIX');
+        const pixData = await res.json();
+        document.getElementById('pix-qr-container').innerHTML = `<img src="data:image/jpeg;base64,${pixData.qr_code_base64}" style="width:100%; max-width:250px; border-radius:8px;">`;
+        pixInterval = setInterval(async () => {
+            const st = await (await fetch(`${API_URL}/pix/${pixData.id}`)).json();
+            if (st.status === 'approved') {
+                clearInterval(pixInterval);
+                if (splitPayments[pendingSplitPixIndex]) splitPayments[pendingSplitPixIndex].status = 'paid';
+                pendingSplitPixIndex = null; document.getElementById('pix-status-text').innerText = '✅ PIX recebido!';
+                setTimeout(() => { document.getElementById('pix-modal').classList.remove('active'); document.getElementById('split-payment-modal').classList.add('active'); updateSplitPayment(); }, 900);
+            }
+        }, 3000);
+    } catch (error) { splitPayments.pop(); pendingSplitPixIndex = null; document.getElementById('pix-modal').classList.remove('active'); document.getElementById('split-payment-modal').classList.add('active'); updateSplitPayment(); alert('Não foi possível gerar o PIX.'); }
 }
 function confirmSplitPayment() {
-    const total = getSplitTotal(); const values = { Dinheiro: Number(document.getElementById('split-cash').value) || 0, Cartao: Number(document.getElementById('split-card').value) || 0, Pix: Number(document.getElementById('split-pix').value) || 0 };
-    if (Math.abs(Object.values(values).reduce((a, b) => a + b, 0) - total) > .005) return alert('Os valores precisam fechar exatamente o total.');
-    const method = Object.entries(values).filter(([, value]) => value > 0).map(([name, value]) => `${name} R$ ${value.toFixed(2)}`).join(' + ');
+    const total = getSplitTotal(); const paid = splitPayments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0);
+    if (splitPayments.some(p => p.status === 'pending')) return alert('Aguarde a confirmação de todos os PIX.');
+    if (Math.abs(paid - total) > .005) return alert('Os pagamentos precisam fechar exatamente o total.');
+    const method = splitPayments.map(p => `${p.method} R$ ${p.amount.toFixed(2)}`).join(' + ');
     closeSplitPayment();
     if (splitPaymentSource === 'mesa') processTableCheckout(method); else processCheckout(method);
 }
@@ -1067,7 +1103,15 @@ async function processCheckout(method) {
     } else { finalizeOrder(method); }
 }
 
-function cancelPix() { clearInterval(pixInterval); document.getElementById('pix-modal').classList.remove('active'); openCartModal(); }
+function cancelPix() {
+    clearInterval(pixInterval); document.getElementById('pix-modal').classList.remove('active');
+    if (pendingSplitPixIndex !== null) {
+        splitPayments.splice(pendingSplitPixIndex, 1); pendingSplitPixIndex = null;
+        document.getElementById('split-payment-modal').classList.add('active'); updateSplitPayment();
+        return;
+    }
+    openCartModal();
+}
 function generateUniqueId() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
 
 async function finalizeOrder(paymentMethod) {
