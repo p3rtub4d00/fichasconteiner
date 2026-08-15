@@ -93,6 +93,14 @@
                     <input id="cash-supply-note" type="text" placeholder="Observação (opcional)">
                     <div id="cash-supply-summary" class="cash-summary">Fundo de troco de hoje: R$ 0,00</div>
                 </section>
+                <section data-admin-section="sales" class="card cash-expense-card">
+                    <h3>Saída de Caixa / Sangria</h3>
+                    <p class="section-note">Registre pagamentos feitos com dinheiro do caixa, como mercadorias, frete ou despesas.</p>
+                    <div class="form-row-2"><input id="cash-expense-amount" type="number" min="0.01" step="0.01" placeholder="Valor (R$)"><select id="cash-expense-category"><option>Mercadoria</option><option>Frete</option><option>Despesa operacional</option><option>Outros</option></select></div>
+                    <div class="form-group-inline"><input id="cash-expense-description" type="text" placeholder="Descrição / motivo"><button class="btn-danger" onclick="addCashExpense()">Registrar saída</button></div>
+                    <div id="cash-expense-summary" class="expense-summary">Saídas de hoje: R$ 0,00</div>
+                    <ul id="cash-expense-list" class="list mini-list"></ul>
+                </section>
                 <section data-admin-section="products" class="card">
                     <h3>Lista de Compras</h3>
                     <p class="section-note">Produtos no estoque mínimo ou abaixo dele.</p>

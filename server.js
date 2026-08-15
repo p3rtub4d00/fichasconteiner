@@ -30,6 +30,9 @@ const Product = mongoose.model('Product', new mongoose.Schema({
 const CashSupply = mongoose.model('CashSupply', new mongoose.Schema({
     amount: { type: Number, required: true }, note: { type: String, default: '' }, date: { type: Date, default: Date.now }
 }));
+const CashExpense = mongoose.model('CashExpense', new mongoose.Schema({
+    amount: { type: Number, required: true }, description: { type: String, required: true }, category: { type: String, default: 'Outros' }, date: { type: Date, default: Date.now }
+}));
 const Order = mongoose.model('Order', new mongoose.Schema({
     orderNumber: { type: String, default: () => Math.random().toString(36).substring(2, 6).toUpperCase() },
     customerName: { type: String, default: '' },
@@ -266,6 +269,20 @@ app.post('/api/cash-supplies', async (req, res) => {
         if (!amount || amount <= 0) return res.status(400).json({ error: 'Informe um valor maior que zero' });
         res.status(201).json(await new CashSupply({ amount, note: String(req.body.note || '') }).save());
     } catch (error) { res.status(500).json({ error: 'Erro ao registrar suprimento' }); }
+});
+app.get('/api/cash-expenses', async (req, res) => {
+    try {
+        const start = req.query.date ? new Date(`${req.query.date}T00:00:00`) : new Date(); start.setHours(0, 0, 0, 0);
+        const end = new Date(start); end.setHours(23, 59, 59, 999);
+        res.json(await CashExpense.find({ date: { $gte: start, $lte: end } }).sort({ date: -1 }));
+    } catch (error) { res.status(500).json({ error: 'Erro ao buscar saídas de caixa' }); }
+});
+app.post('/api/cash-expenses', async (req, res) => {
+    try {
+        const amount = Number(req.body.amount); const description = String(req.body.description || '').trim();
+        if (!amount || amount <= 0 || !description) return res.status(400).json({ error: 'Informe valor e descrição da saída' });
+        res.status(201).json(await new CashExpense({ amount, description, category: String(req.body.category || 'Outros') }).save());
+    } catch (error) { res.status(500).json({ error: 'Erro ao registrar saída de caixa' }); }
 });
 
 // ================= ROTAS DE MESAS =================

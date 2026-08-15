@@ -18,6 +18,7 @@ let splitPaymentSource = null;
 let splitPayments = [];
 let pendingSplitPixIndex = null;
 let shoppingListProducts = [];
+let currentCashExpenses = [];
 
 window.onload = () => {
     applySavedTheme();
@@ -410,6 +411,7 @@ async function loadAdminData() {
     await fetchTablesAdmin(); 
     await loadCustomers(); 
     await loadCashSupplies();
+    await loadCashExpenses();
     await loadShoppingList();
     updateAdminDashboard();
 }
@@ -431,6 +433,29 @@ async function addCashSupply() {
         document.getElementById('cash-supply-amount').value = ''; document.getElementById('cash-supply-note').value = '';
         await loadCashSupplies(); showToast('Suprimento de caixa registrado.');
     } catch (error) { alert('Não foi possível registrar o suprimento.'); }
+}
+async function loadCashExpenses() {
+    try {
+        const selectedDate = document.getElementById('history-date')?.value || '';
+        const response = await fetch(`${API_URL}/cash-expenses${selectedDate ? `?date=${selectedDate}` : ''}`);
+        currentCashExpenses = await response.json();
+        if (!Array.isArray(currentCashExpenses)) currentCashExpenses = [];
+        const total = currentCashExpenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        document.getElementById('cash-expense-summary').textContent = `Saídas do dia: R$ ${total.toFixed(2)}`;
+        document.getElementById('cash-expense-list').innerHTML = currentCashExpenses.length ? currentCashExpenses.map(item => `<li><span><strong>${item.description}</strong><small style="display:block;color:var(--text-muted)">${item.category}</small></span><strong style="color:var(--danger)">- R$ ${Number(item.amount).toFixed(2)}</strong></li>`).join('') : '<li class="empty-list">Nenhuma saída registrada neste dia.</li>';
+    } catch (error) { console.error('Erro ao carregar saídas de caixa', error); }
+}
+async function addCashExpense() {
+    const amount = Number(document.getElementById('cash-expense-amount').value);
+    const description = document.getElementById('cash-expense-description').value.trim();
+    const category = document.getElementById('cash-expense-category').value;
+    if (!amount || amount <= 0 || !description) return alert('Informe o valor e o motivo da saída.');
+    try {
+        const response = await fetch(`${API_URL}/cash-expenses`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount, description, category }) });
+        if (!response.ok) throw new Error('Erro');
+        document.getElementById('cash-expense-amount').value = ''; document.getElementById('cash-expense-description').value = '';
+        await loadCashExpenses(); showToast('Saída de caixa registrada.');
+    } catch (error) { alert('Não foi possível registrar a saída.'); }
 }
 async function loadShoppingList() {
     try {
@@ -790,6 +815,7 @@ async function fetchHistory() {
     }).join('') || '<p style="text-align:center; color:var(--text-muted); padding:10px;">Nenhuma venda registrada hoje.</p>';
     document.getElementById('total-revenue').innerText = `R$ ${totalRev.toFixed(2)}`;
     updateAdminDashboard();
+    loadCashExpenses();
 }
 
 function printDailyReport() {
@@ -802,7 +828,13 @@ function printDailyReport() {
         if (order.items) order.items.forEach(i => { reportHTML += `&nbsp;• ${i.quantity}x ${i.productName}<br>`; });
         reportHTML += `<div style="text-align: right; font-weight: bold;">R$ ${order.total.toFixed(2)}</div></div><div style="border-bottom: 1px dotted #666; margin: 3px 0;"></div>`;
     });
-    reportHTML += `<h2 style="font-size: 15px; text-align:center; margin: 4px 0;">TOTAL: R$ ${totalRev.toFixed(2)}</h2></div>`;
+    const totalExpenses = currentCashExpenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
+    if (currentCashExpenses.length) {
+        reportHTML += `<div style="border-top:1px dashed #000;margin-top:6px;padding-top:5px"><strong>SAÍDAS DE CAIXA</strong><br>`;
+        currentCashExpenses.forEach(expense => { reportHTML += `${expense.description}: - R$ ${Number(expense.amount).toFixed(2)}<br>`; });
+        reportHTML += `<strong>Total de saídas: - R$ ${totalExpenses.toFixed(2)}</strong></div>`;
+    }
+    reportHTML += `<h2 style="font-size: 15px; text-align:center; margin: 8px 0 4px;">VENDAS: R$ ${totalRev.toFixed(2)}</h2><h2 style="font-size: 15px; text-align:center; margin: 4px 0;">RESULTADO: R$ ${(totalRev - totalExpenses).toFixed(2)}</h2></div>`;
     document.getElementById('print-area').innerHTML = reportHTML; setTimeout(() => window.print(), 200);
 }
 
