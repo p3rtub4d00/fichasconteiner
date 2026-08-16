@@ -140,11 +140,14 @@ button:active { transform: scale(0.98); }
 
 #print-area { display: none; }
 @media print {
-    @page { margin: 0; }
+    @page { size: 58mm auto; margin: 0; }
     .view, .modal, #cart-floating-btn, .waiter-nav { display: none !important; }
     body { background: white !important; margin: 0; padding: 0; }
-    #print-area { display: block !important; position: absolute; left: 0; top: 0; width: 58mm; margin: 0; background: white; color: black; font-family: monospace; font-weight: bold; }
-    .ticket { padding: 5px 0 15px 0; text-align: center; border-bottom: 2px dashed #000; page-break-after: always; margin-bottom: 0; }
+    #print-area { display: block !important; position: absolute; left: 0; top: 0; width: 58mm; min-height: auto !important; height: auto !important; overflow: visible !important; margin: 0; background: white; color: black; font-family: monospace; font-weight: bold; }
+    .ticket { display: block !important; width: 58mm !important; min-height: auto !important; height: auto !important; max-height: none !important; overflow: visible !important; padding: 5px 0 15px 0; text-align: center; border-bottom: 2px dashed #000; page-break-after: auto !important; break-after: auto !important; page-break-inside: auto !important; break-inside: auto !important; margin-bottom: 0; }
+    .ticket table { width: 100% !important; table-layout: fixed; border-collapse: collapse; }
+    .ticket tr { break-inside: avoid; page-break-inside: avoid; }
+    .ticket th, .ticket td { overflow-wrap: anywhere; vertical-align: top; padding: 1px 0; }
     .ticket h3 { font-size: 14px; margin-bottom: 5px; }
     .ticket h2 { font-size: 18px; text-transform: uppercase; margin: 5px 0; }
     .ticket h1 { font-size: 24px; margin: 5px 0; }
