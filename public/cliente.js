@@ -216,6 +216,7 @@ async function finalizeOrder(paymentMethodString) {
                 total: window.currentCheckoutTotal, 
                 paymentMethod: paymentMethodString, 
                 waiter: 'Pedido Online (Site)',
+                saleType: 'online',
                 customerName: window.currentCustomerName,
                 customerPhone: window.currentCustomerPhone
             }) 

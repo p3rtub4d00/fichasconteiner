@@ -19,6 +19,36 @@ let splitPayments = [];
 let pendingSplitPixIndex = null;
 let shoppingListProducts = [];
 let currentCashExpenses = [];
+let currentCashSupplies = [];
+
+function createRequestId() {
+    return window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+async function recordSale(endpoint, payload) {
+    const requestId = payload.requestId || createRequestId();
+    const sale = { ...payload, requestId };
+    const queueKey = `pending-sale:${requestId}`;
+    localStorage.setItem(queueKey, JSON.stringify({ endpoint, sale }));
+    try {
+        const response = await fetch(`${API_URL}${endpoint}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sale) });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) { localStorage.removeItem(queueKey); throw new Error(data.error || 'Não foi possível registrar a venda'); }
+        localStorage.removeItem(queueKey);
+        return data;
+    } catch (error) {
+        throw error;
+    }
+}
+async function retryPendingSales() {
+    const pendingKeys = Object.keys(localStorage).filter(key => key.startsWith('pending-sale:'));
+    for (const key of pendingKeys) {
+        try {
+            const pending = JSON.parse(localStorage.getItem(key));
+            const response = await fetch(`${API_URL}${pending.endpoint}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pending.sale) });
+            if (response.ok) localStorage.removeItem(key);
+        } catch (error) { /* permanece na fila e será reenviado quando houver conexão */ }
+    }
+}
 
 window.onload = () => {
     applySavedTheme();
@@ -29,6 +59,8 @@ window.onload = () => {
     else { localStorage.removeItem('userRole'); localStorage.removeItem('authToken'); }
     
     setInterval(checkNewOrdersForPrint, 5000);
+    retryPendingSales();
+    window.addEventListener('online', retryPendingSales);
 };
 
 // ================= NAVEGAÇÃO DO GARÇOM (O NOVO MENU) =================
@@ -110,10 +142,7 @@ async function processAvulsa(method) {
 
 async function finalizeAvulsa(items, total, method) {
     try {
-        await fetch(`${API_URL}/orders`, { 
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ items, total, paymentMethod: method, waiter: 'Garçom' }) 
-        });
+        await recordSale('/orders', { items, total, paymentMethod: method, waiter: 'Garçom', saleType: 'avulsa' });
         document.getElementById('pix-modal').classList.remove('active');
         document.getElementById('avulsa-valor').value = '';
         showToast('✅ Venda Avulsa registrada!');
@@ -418,9 +447,11 @@ async function loadAdminData() {
 
 async function loadCashSupplies() {
     try {
-        const supplies = await (await fetch(`${API_URL}/cash-supplies`)).json();
-        const total = supplies.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-        document.getElementById('cash-supply-summary').textContent = `Fundo de troco de hoje: R$ ${total.toFixed(2)}`;
+        const selectedDate = document.getElementById('history-date')?.value || '';
+        currentCashSupplies = await (await fetch(`${API_URL}/cash-supplies${selectedDate ? `?date=${selectedDate}` : ''}`)).json();
+        if (!Array.isArray(currentCashSupplies)) currentCashSupplies = [];
+        const total = currentCashSupplies.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        document.getElementById('cash-supply-summary').textContent = `Suprimentos do dia: R$ ${total.toFixed(2)}`;
     } catch (error) { console.error('Erro ao carregar suprimento de caixa', error); }
 }
 async function addCashSupply() {
@@ -815,26 +846,40 @@ async function fetchHistory() {
     }).join('') || '<p style="text-align:center; color:var(--text-muted); padding:10px;">Nenhuma venda registrada hoje.</p>';
     document.getElementById('total-revenue').innerText = `R$ ${totalRev.toFixed(2)}`;
     updateAdminDashboard();
-    loadCashExpenses();
+    await Promise.all([loadCashExpenses(), loadCashSupplies()]);
 }
 
 function printDailyReport() {
-    if (!currentDayOrders || currentDayOrders.length === 0) return alert('Sem vendas!');
-    let totalRev = 0; let reportHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white; page-break-after: always; break-after: page; margin-bottom: 0;"><div style="text-align: center;"><h3>Conteiner Beer</h3><p>--- FECHAMENTO ---</p></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div>`;
-    currentDayOrders.forEach((order, index) => {
-        if(order.paymentMethod && order.paymentMethod.includes('Pendente')) return;
-        totalRev += order.total; const hora = new Date(order.date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-        reportHTML += `<div style="margin-bottom: 5px;"><strong>#${index + 1} (${hora}) - ${order.paymentMethod}</strong><br>`;
+    const receivedOrders = currentDayOrders.filter(order => !order.paymentMethod?.includes('Pendente'));
+    const pendingOrders = currentDayOrders.filter(order => order.paymentMethod?.includes('Pendente'));
+    if (!receivedOrders.length && !pendingOrders.length && !currentCashSupplies.length && !currentCashExpenses.length) return alert('Não há movimentações neste dia.');
+    let totalRev = 0; const selectedDate = document.getElementById('history-date')?.value || new Date().toLocaleDateString('pt-BR');
+    let reportHTML = `<div class="ticket" style="text-align: left; font-family: monospace; font-size: 11px; width: 58mm; padding: 5px; color: black; background: white; page-break-after: always; break-after: page; margin-bottom: 0;"><div style="text-align: center;"><h3>Conteiner Beer</h3><p>--- FECHAMENTO DE CAIXA ---</p><p>${selectedDate}</p></div><div style="border-bottom: 1px dashed #000; margin-bottom: 6px;"></div><strong>VENDAS RECEBIDAS</strong><br>`;
+    receivedOrders.forEach((order, index) => {
+        totalRev += Number(order.total) || 0; const hora = new Date(order.date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+        const saleLabel = { fichas: 'FICHAS', atacado: 'ATACADO', avulsa: 'AVULSA', comanda: 'COMANDA', online: 'ONLINE' }[order.saleType] || 'VENDA';
+        reportHTML += `<div style="margin-bottom: 5px;"><strong>#${index + 1} (${hora}) [${saleLabel}] - ${order.paymentMethod}</strong><br>`;
         if (order.items) order.items.forEach(i => { reportHTML += `&nbsp;• ${i.quantity}x ${i.productName}<br>`; });
         reportHTML += `<div style="text-align: right; font-weight: bold;">R$ ${order.total.toFixed(2)}</div></div><div style="border-bottom: 1px dotted #666; margin: 3px 0;"></div>`;
     });
+    const totalSupplies = currentCashSupplies.reduce((sum, supply) => sum + (Number(supply.amount) || 0), 0);
+    if (currentCashSupplies.length) {
+        reportHTML += `<div style="border-top:1px dashed #000;margin-top:6px;padding-top:5px"><strong>SUPRIMENTOS / DINHEIRO ADICIONADO</strong><br>`;
+        currentCashSupplies.forEach(supply => { reportHTML += `${supply.note || 'Fundo de troco'}: + R$ ${Number(supply.amount).toFixed(2)}<br>`; });
+        reportHTML += `<strong>Total de suprimentos: + R$ ${totalSupplies.toFixed(2)}</strong></div>`;
+    }
     const totalExpenses = currentCashExpenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
     if (currentCashExpenses.length) {
         reportHTML += `<div style="border-top:1px dashed #000;margin-top:6px;padding-top:5px"><strong>SAÍDAS DE CAIXA</strong><br>`;
         currentCashExpenses.forEach(expense => { reportHTML += `${expense.description}: - R$ ${Number(expense.amount).toFixed(2)}<br>`; });
         reportHTML += `<strong>Total de saídas: - R$ ${totalExpenses.toFixed(2)}</strong></div>`;
     }
-    reportHTML += `<h2 style="font-size: 15px; text-align:center; margin: 8px 0 4px;">VENDAS: R$ ${totalRev.toFixed(2)}</h2><h2 style="font-size: 15px; text-align:center; margin: 4px 0;">RESULTADO: R$ ${(totalRev - totalExpenses).toFixed(2)}</h2></div>`;
+    if (pendingOrders.length) {
+        reportHTML += `<div style="border-top:1px dashed #000;margin-top:7px;padding-top:5px"><strong>PEDIDOS PENDENTES (NÃO SOMADOS)</strong><br>`;
+        pendingOrders.forEach(order => { reportHTML += `#${order.orderNumber || 'ONLINE'}: R$ ${Number(order.total).toFixed(2)}<br>`; });
+        reportHTML += `</div>`;
+    }
+    reportHTML += `<h2 style="font-size: 15px; text-align:center; margin: 8px 0 4px;">VENDAS: R$ ${totalRev.toFixed(2)}</h2><h2 style="font-size: 15px; text-align:center; margin: 4px 0;">MOVIMENTO: R$ ${(totalRev + totalSupplies - totalExpenses).toFixed(2)}</h2></div>`;
     document.getElementById('print-area').innerHTML = reportHTML; setTimeout(() => window.print(), 200);
 }
 
@@ -948,7 +993,7 @@ async function processTableCheckout(method) {
     const subtotal = currentTableData.items.reduce((s, i) => s + (i.price * i.quantity), 0);
     const taxVal = document.getElementById('tc-tax').checked ? subtotal * 0.10 : 0; const total = subtotal + taxVal;
     const split = parseInt(document.getElementById('tc-split').value) || 1;
-    const finalData = { method, subtotal, tax: taxVal, total, split, perPerson: total / split, items: currentTableData.items, tableName: currentTableData.name };
+    const finalData = { method, subtotal, tax: taxVal, total, split, perPerson: total / split, items: currentTableData.items, tableName: currentTableData.name, requestId: createRequestId() };
 
     if (method === 'Pix') {
         closeTableCheckoutModal(); document.getElementById('pix-modal').classList.add('active'); document.getElementById('pix-qr-container').innerHTML = '<p>Gerando...</p>';
@@ -1029,8 +1074,7 @@ function confirmSplitPayment() {
 
 async function finalizeTableOrder(data) {
     try {
-        const res = await fetch(`${API_URL}/tables/${currentTableData._id}/checkout`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paymentMethod: data.method, total: data.total, items: data.items, waiter: 'Garçom' }) });
-        if (!res.ok) throw new Error('Erro');
+        await recordSale(`/tables/${currentTableData._id}/checkout`, { paymentMethod: data.method, total: data.total, items: data.items, waiter: 'Garçom', requestId: data.requestId });
         document.getElementById('pix-modal').classList.remove('active'); 
         closeTableCheckoutModal();
         currentTableData = null; 
@@ -1163,8 +1207,8 @@ function generateUniqueId() { return Math.random().toString(36).substring(2, 8).
 async function finalizeOrder(paymentMethod) {
     try {
         const total = cart.reduce((s, i) => s + (i.price * i.quantity), 0);
-        const res = await fetch(`${API_URL}/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: cart, total: total, paymentMethod: paymentMethod, waiter: 'Garçom' }) });
-        if (!res.ok) throw new Error('Erro');
+        const saleType = cart.every(item => item.isWholesale) ? 'atacado' : 'fichas';
+        await recordSale('/orders', { items: cart, total, paymentMethod, waiter: 'Garçom', saleType });
         cart = []; updateCartUI(); closeCartModal(); fetchProducts('waiter');
     } catch (e) { alert('Erro ao finalizar pedido.'); }
 }

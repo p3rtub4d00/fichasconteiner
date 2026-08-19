@@ -37,8 +37,9 @@ const Order = mongoose.model('Order', new mongoose.Schema({
     orderNumber: { type: String, default: () => Math.random().toString(36).substring(2, 6).toUpperCase() },
     customerName: { type: String, default: '' },
     customerPhone: { type: String, default: '' },
-    items: Array, total: Number, paymentMethod: String, waiter: String,
-    orderType: { type: String, default: 'sale' }, tableName: { type: String, default: '' },
+    items: { type: Array, default: [] }, total: { type: Number, required: true }, paymentMethod: String, waiter: String,
+    orderType: { type: String, default: 'sale' }, saleType: { type: String, default: 'fichas' }, tableName: { type: String, default: '' },
+    requestId: { type: String, unique: true, sparse: true },
     date: { type: Date, default: Date.now },
     settled: { type: Boolean, default: false },
     printed: { type: Boolean, default: false }
@@ -258,7 +259,7 @@ app.get('/api/products/shopping-list', async (req, res) => {
 // ================= CAIXA =================
 app.get('/api/cash-supplies', async (req, res) => {
     try {
-        const start = new Date(); start.setHours(0, 0, 0, 0);
+        const start = req.query.date ? new Date(`${req.query.date}T00:00:00`) : new Date(); start.setHours(0, 0, 0, 0);
         const end = new Date(); end.setHours(23, 59, 59, 999);
         res.json(await CashSupply.find({ date: { $gte: start, $lte: end } }).sort({ date: -1 }));
     } catch (error) { res.status(500).json({ error: 'Erro ao buscar suprimentos' }); }
@@ -319,13 +320,21 @@ app.put('/api/tables/:id/remove', async (req, res) => {
 app.post('/api/tables/:id/checkout', async (req, res) => {
     try {
         const table = await Table.findById(req.params.id);
-        await new Order({ 
+        if (!table) return res.status(404).json({ error: 'Mesa não encontrada' });
+        if (req.body.requestId) {
+            const existingOrder = await Order.findOne({ requestId: req.body.requestId });
+            if (existingOrder) return res.json({ msg: 'Mesa já fechada', order: existingOrder, duplicate: true });
+        }
+        if (!Array.isArray(req.body.items) || !req.body.items.length || !Number(req.body.total) || Number(req.body.total) <= 0) return res.status(400).json({ error: 'Dados da comanda inválidos' });
+        const newOrder = await new Order({ 
             items: req.body.items, 
-            total: req.body.total, 
+            total: Number(req.body.total),
             paymentMethod: req.body.paymentMethod, 
             waiter: req.body.waiter || 'Garçom',
             orderType: 'table',
+            saleType: 'comanda',
             tableName: table.name,
+            requestId: req.body.requestId,
             settled: false,
             printed: false
         }).save();
@@ -338,7 +347,7 @@ app.post('/api/tables/:id/checkout', async (req, res) => {
             }
         }
         table.items = []; table.status = 'livre'; await table.save();
-        res.json({ msg: 'Mesa fechada' });
+        res.json({ msg: 'Mesa fechada', order: newOrder });
     } catch (error) { res.status(500).json({ error: 'Erro' }); }
 });
 
@@ -360,7 +369,13 @@ app.put('/api/tables/:id/clear-print', async (req, res) => {
 // ================= ROTAS DE PEDIDOS E HISTÓRICO =================
 app.post('/api/orders', async (req, res) => {
     try {
-        const newOrder = await new Order({ ...req.body, settled: false, printed: false }).save();
+        if (req.body.requestId) {
+            const existingOrder = await Order.findOne({ requestId: req.body.requestId });
+            if (existingOrder) return res.json({ msg: 'Pedido já registrado', order: existingOrder, duplicate: true });
+        }
+        const total = Number(req.body.total);
+        if (!Array.isArray(req.body.items) || !req.body.items.length || !Number.isFinite(total) || total <= 0) return res.status(400).json({ error: 'Dados da venda inválidos' });
+        const newOrder = await new Order({ ...req.body, total, settled: false, printed: false }).save();
         
         await processClubPaymentIfNeeded(req.body.paymentMethod, req.body.items, req.body.total);
 
