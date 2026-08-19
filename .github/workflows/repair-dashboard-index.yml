@@ -1,4 +1,4 @@
-name: Repair dashboard index
+name: Finalizar dashboard
 
 on:
   push:
@@ -8,30 +8,31 @@ permissions:
   contents: write
 
 jobs:
-  repair:
-    if: ${{ !contains(github.event.head_commit.message, '[dashboard-repair]') }}
+  finalize:
+    if: ${{ !contains(github.event.head_commit.message, '[dashboard-final]') }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - name: Restore original index and load dashboard
+      - uses: actions/checkout@v4
+      - name: Inserir dashboard sem alterar o restante do PDV
         shell: python
         run: |
-          import subprocess
           from pathlib import Path
-          original = subprocess.check_output([
-              'git','show','9a2d1e26519f353b46682817f7d3f07913a37bd5:public/index.html'
-          ]).decode('utf-8')
-          original = original.replace(
-              '<script src="app.js"></script>',
-              '<script src="app.js"></script>\n    <script src="dashboard.js"></script>',
-              1
-          )
-          Path('public/index.html').write_text(original, encoding='utf-8')
-      - name: Commit repair and remove workflow
+          p = Path('public/index.html')
+          text = p.read_text(encoding='utf-8')
+          tag = '<script src="dashboard.js"></script>'
+          text = text.replace(tag + '\n', '').replace(tag, '')
+          marker = '<script src="app.js"></script>'
+          if marker not in text:
+              raise SystemExit('Marcador app.js não encontrado; nenhuma alteração aplicada.')
+          text = text.replace(marker, marker + '\n    ' + tag, 1)
+          p.write_text(text, encoding='utf-8')
+      - name: Commit final e remover workflow
+        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/index.html .github/workflows/repair-dashboard-index.yml
+          git add public/index.html
           git rm .github/workflows/repair-dashboard-index.yml
-          git commit -m "Restaurar index original com dashboard [dashboard-repair]"
+          git diff --cached --quiet && exit 0 || true
+          git commit -m "Ativar dashboard profissional [dashboard-final]"
           git push
