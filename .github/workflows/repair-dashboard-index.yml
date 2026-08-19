@@ -1,0 +1,37 @@
+name: Repair dashboard index
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: ${{ !contains(github.event.head_commit.message, '[dashboard-repair]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Restore original index and load dashboard
+        shell: python
+        run: |
+          import subprocess
+          from pathlib import Path
+          original = subprocess.check_output([
+              'git','show','9a2d1e26519f353b46682817f7d3f07913a37bd5:public/index.html'
+          ]).decode('utf-8')
+          original = original.replace(
+              '<script src="app.js"></script>',
+              '<script src="app.js"></script>\n    <script src="dashboard.js"></script>',
+              1
+          )
+          Path('public/index.html').write_text(original, encoding='utf-8')
+      - name: Commit repair and remove workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/index.html .github/workflows/repair-dashboard-index.yml
+          git rm .github/workflows/repair-dashboard-index.yml
+          git commit -m "Restaurar index original com dashboard [dashboard-repair]"
+          git push
