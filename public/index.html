@@ -24,12 +24,35 @@
     <!-- TELA DE LOGIN -->
     <div id="login-view" class="view active">
         <div class="theme-toggle-container"><button class="theme-btn" onclick="toggleTheme()">🌓 Tema</button></div>
-        <div class="login-box"><h1>Conteiner Beer</h1><input type="password" id="pin-input" placeholder="Senha de Acesso"><button onclick="login()">Entrar</button></div>
+        <div class="login-box">
+            <h1>Conteiner Beer</h1>
+            <input type="password" id="pin-input" placeholder="Senha de Acesso">
+            <button onclick="login()">Entrar</button>
+        </div>
     </div>
+
     <!-- TELA ADMIN -->
     <div id="admin-view" class="view">
-        <header class="admin-header"><div style="display:flex;gap:10px;align-items:center;"><h1>Painel Admin - Conteiner Beer</h1><button class="theme-btn" onclick="toggleTheme()">🌓</button></div><button onclick="logout()" class="btn-danger">Sair</button></header>
-        <nav class="admin-nav" aria-label="Navegação do painel"><button class="active" data-admin-page="overview" onclick="openAdminPage('overview')"><span>▦</span> Visão geral</button><button data-admin-page="sales" onclick="openAdminPage('sales')"><span>◫</span> Vendas & Caixa</button><button data-admin-page="products" onclick="openAdminPage('products')"><span>□</span> Produtos</button><button data-admin-page="customers" onclick="openAdminPage('customers')"><span>♙</span> Clientes</button><button data-admin-page="tables" onclick="openAdminPage('tables')"><span>⌘</span> Mesas</button><button data-admin-page="settings" onclick="openAdminPage('settings')"><span>⚙</span> Ajustes</button></nav>
-        <section id="admin-summary" class="admin-summary"><article class="summary-card"><span>Vendas confirmadas</span><strong id="metric-sales">R$ 0,00</strong><small>no dia selecionado</small></article><article class="summary-card"><span>Pedidos do dia</span><strong id="metric-orders">0</strong><small>incluindo pendentes</small></article><article class="summary-card"><span>Mesas ocupadas</span><strong id="metric-tables">0</strong><small>comandas em aberto</small></article><article class="summary-card"><span>Estoque baixo</span><strong id="metric-stock">0</strong><small>produtos com até 5 un.</small></article></section>
+        <header class="admin-header">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <h1>Painel Admin - Conteiner Beer</h1>
+                <button class="theme-btn" onclick="toggleTheme()">🌓</button>
+            </div>
+            <button onclick="logout()" class="btn-danger">Sair</button>
+        </header>
+        <nav class="admin-nav" aria-label="Navegação do painel">
+            <button class="active" data-admin-page="overview" onclick="openAdminPage('overview')"><span>▦</span> Visão geral</button>
+            <button data-admin-page="sales" onclick="openAdminPage('sales')"><span>◫</span> Vendas & Caixa</button>
+            <button data-admin-page="products" onclick="openAdminPage('products')"><span>□</span> Produtos</button>
+            <button data-admin-page="customers" onclick="openAdminPage('customers')"><span>♙</span> Clientes</button>
+            <button data-admin-page="tables" onclick="openAdminPage('tables')"><span>⌘</span> Mesas</button>
+            <button data-admin-page="settings" onclick="openAdminPage('settings')"><span>⚙</span> Ajustes</button>
+        </nav>
+        <section id="admin-summary" class="admin-summary">
+            <article class="summary-card"><span>Vendas confirmadas</span><strong id="metric-sales">R$ 0,00</strong><small>no dia selecionado</small></article>
+            <article class="summary-card"><span>Pedidos do dia</span><strong id="metric-orders">0</strong><small>incluindo pendentes</small></article>
+            <article class="summary-card"><span>Mesas ocupadas</span><strong id="metric-tables">0</strong><small>comandas em aberto</small></article>
+            <article class="summary-card"><span>Estoque baixo</span><strong id="metric-stock">0</strong><small>produtos com até 5 un.</small></article>
+        </section>
 '''+dashboard_html+'''        <main class="admin-container admin-workspace">'''+orig.split('        <main class="admin-container admin-workspace">',1)[1].split('</body>',1)[0]+'''</body>
 </html>'''
