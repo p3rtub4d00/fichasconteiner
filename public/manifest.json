@@ -3,13 +3,14 @@
   "short_name": "Conteiner Beer",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
+  "background_color": "#050608",
   "theme_color": "#f59e0b",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/3076/3076897.png",
+      "src": "conteiner-beer-icon.svg",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }
