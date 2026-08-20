@@ -4,60 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conteiner Beer - PDV</title>
-    
-    <!-- TAGS PARA O APP (PWA) -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f59e0b">
-    
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Estilos específicos para o novo Menu do Garçom */
-        .waiter-menu-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            padding: 20px;
-        }
-        .btn-main-menu {
-            background: var(--bg-card);
-            border: 2px solid var(--primary);
-            color: var(--text-main);
-            border-radius: 12px;
-            padding: 25px 10px;
-            font-size: 15px;
-            font-weight: bold;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            transition: transform 0.1s, border-color 0.2s;
-        }
-        .btn-main-menu span.icon { font-size: 32px; }
-        .btn-main-menu:active { transform: scale(0.95); }
+        .waiter-menu-grid { display:grid; grid-template-columns:1fr 1fr; gap:15px; padding:20px; }
+        .btn-main-menu { background:var(--bg-card); border:2px solid var(--primary); color:var(--text-main); border-radius:12px; padding:25px 10px; font-size:15px; font-weight:bold; display:flex; flex-direction:column; align-items:center; gap:12px; cursor:pointer; box-shadow:0 4px 10px rgba(0,0,0,.2); transition:transform .1s,border-color .2s; }
+        .btn-main-menu span.icon { font-size:32px; }
+        .btn-main-menu:active { transform:scale(.95); }
     </style>
 </head>
 <body>
-    <!-- TELA DE LOGIN -->
     <div id="login-view" class="view active">
         <div class="theme-toggle-container"><button class="theme-btn" onclick="toggleTheme()">🌓 Tema</button></div>
-        <div class="login-box">
-            <h1>Conteiner Beer</h1>
-            <input type="password" id="pin-input" placeholder="Senha de Acesso">
-            <button onclick="login()">Entrar</button>
-        </div>
+        <div class="login-box"><h1>Conteiner Beer</h1><input type="password" id="pin-input" placeholder="Senha de Acesso"><button onclick="login()">Entrar</button></div>
     </div>
 
-    <!-- TELA ADMIN -->
     <div id="admin-view" class="view">
-        <header class="admin-header">
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <h1>Painel Admin - Conteiner Beer</h1>
-                <button class="theme-btn" onclick="toggleTheme()">🌓</button>
-            </div>
-            <button onclick="logout()" class="btn-danger">Sair</button>
-        </header>
+        <header class="admin-header"><div style="display:flex;gap:10px;align-items:center;"><h1>Painel Admin - Conteiner Beer</h1><button class="theme-btn" onclick="toggleTheme()">🌓</button></div><button onclick="logout()" class="btn-danger">Sair</button></header>
         <nav class="admin-nav" aria-label="Navegação do painel">
             <button class="active" data-admin-page="overview" onclick="openAdminPage('overview')"><span>▦</span> Visão geral</button>
             <button data-admin-page="sales" onclick="openAdminPage('sales')"><span>◫</span> Vendas & Caixa</button>
@@ -66,362 +30,50 @@
             <button data-admin-page="tables" onclick="openAdminPage('tables')"><span>⌘</span> Mesas</button>
             <button data-admin-page="settings" onclick="openAdminPage('settings')"><span>⚙</span> Ajustes</button>
         </nav>
-        <section id="admin-summary" class="admin-summary">
-            <article class="summary-card"><span>Vendas confirmadas</span><strong id="metric-sales">R$ 0,00</strong><small>no dia selecionado</small></article>
-            <article class="summary-card"><span>Pedidos do dia</span><strong id="metric-orders">0</strong><small>incluindo pendentes</small></article>
-            <article class="summary-card"><span>Mesas ocupadas</span><strong id="metric-tables">0</strong><small>comandas em aberto</small></article>
-            <article class="summary-card"><span>Estoque baixo</span><strong id="metric-stock">0</strong><small>produtos com até 5 un.</small></article>
-        </section>
+        <section id="admin-summary" class="admin-summary"><article class="summary-card"><span>Vendas confirmadas</span><strong id="metric-sales">R$ 0,00</strong><small>no dia selecionado</small></article><article class="summary-card"><span>Pedidos do dia</span><strong id="metric-orders">0</strong><small>incluindo pendentes</small></article><article class="summary-card"><span>Mesas ocupadas</span><strong id="metric-tables">0</strong><small>comandas em aberto</small></article><article class="summary-card"><span>Estoque baixo</span><strong id="metric-stock">0</strong><small>produtos com até 5 un.</small></article></section>
         <main class="admin-container admin-workspace">
             <div class="admin-col-left">
-                <section id="admin-security" data-admin-section="settings" class="card security-card">
-                    <div class="section-heading"><span class="section-icon">🔐</span><div><h3>Segurança da conta</h3><p>Altere a senha administrativa quando precisar.</p></div></div>
-                    <button class="btn-outline" onclick="openPasswordModal()">Trocar senha administrativa</button>
-                </section>
-                <section id="admin-sales" data-admin-section="sales" class="card">
-                    <h3>Faturamento Diário</h3>
-                    <div class="input-date-wrapper" style="margin-bottom: 10px;">
-                        <input type="date" id="history-date" onchange="fetchHistory()">
-                    </div>
-                    <h2 id="total-revenue">R$ 0,00</h2>
-                    <button onclick="printDailyReport()" class="btn-success" style="width: 100%; margin-top: 15px; font-size: 14px; padding: 12px;">🖨️ Imprimir Fechamento</button>
-                </section>
-                <section data-admin-section="sales" class="card">
-                    <h3>Suprimento de Caixa</h3>
-                    <p class="section-note">Registre o fundo de troco colocado no caixa. Ele não é uma venda.</p>
-                    <div class="form-group-inline"><input id="cash-supply-amount" type="number" min="0.01" step="0.01" placeholder="Valor inicial (R$)"><button onclick="addCashSupply()">Registrar</button></div>
-                    <input id="cash-supply-note" type="text" placeholder="Observação (opcional)">
-                    <div id="cash-supply-summary" class="cash-summary">Fundo de troco de hoje: R$ 0,00</div>
-                </section>
-                <section data-admin-section="sales" class="card cash-expense-card">
-                    <h3>Saída de Caixa / Sangria</h3>
-                    <p class="section-note">Registre pagamentos feitos com dinheiro do caixa, como mercadorias, frete ou despesas.</p>
-                    <div class="form-row-2"><input id="cash-expense-amount" type="number" min="0.01" step="0.01" placeholder="Valor (R$)"><select id="cash-expense-category"><option>Mercadoria</option><option>Frete</option><option>Despesa operacional</option><option>Outros</option></select></div>
-                    <div class="form-group-inline"><input id="cash-expense-description" type="text" placeholder="Descrição / motivo"><button class="btn-danger" onclick="addCashExpense()">Registrar saída</button></div>
-                    <div id="cash-expense-summary" class="expense-summary">Saídas de hoje: R$ 0,00</div>
-                    <ul id="cash-expense-list" class="list mini-list"></ul>
-                </section>
-                <section data-admin-section="products" class="card">
-                    <h3>Lista de Compras</h3>
-                    <p class="section-note">Produtos no estoque mínimo ou abaixo dele.</p>
-                    <ul id="shopping-list" class="list mini-list"></ul>
-                    <button class="btn-outline" style="width:100%; margin-top:10px;" onclick="printShoppingList()">🖨️ Imprimir lista</button>
-                </section>
-                
-                <section id="admin-customers" data-admin-section="customers" class="card">
-                    <h3>Clientes & Clube de Crédito</h3>
-                    <div class="form-group-inline">
-                        <input type="text" id="client-name" placeholder="Nome do Cliente">
-                        <input type="text" id="client-phone" placeholder="WhatsApp" style="width: 110px;">
-                        <button onclick="addClient()">Cadastrar</button>
-                    </div>
-                    <ul id="admin-client-list" class="list mini-list"></ul>
-                </section>
-
-                <section id="admin-tables" data-admin-section="tables" class="card">
-                    <h3>Gerenciar Mesas/Comandas</h3>
-                    <div class="form-group-inline">
-                        <input type="text" id="table-name" placeholder="Ex: Mesa 01">
-                        <button onclick="addTable()">Adicionar</button>
-                    </div>
-                    <ul id="admin-table-list" class="list mini-list"></ul>
-                </section>
-
-                <section data-admin-section="products" class="card">
-                    <h3>Gerenciar Categorias</h3>
-                    <div class="form-group-inline">
-                        <input type="text" id="cat-name" placeholder="Nome da Categoria">
-                        <button onclick="addCategory()">Adicionar</button>
-                    </div>
-                    <ul id="admin-category-list" class="list mini-list"></ul>
-                </section>
-                
-                <section id="admin-products" data-admin-section="products" class="card">
-                    <h3>Cadastrar Produto</h3>
-                    <div class="form-group-stack">
-                        <label for="prod-name" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; color:#888;">Nome do Produto</label>
-                        <input type="text" id="prod-name" placeholder="Ex: 🍺 Skol 300ml">
-                        
-                        <div class="form-row-2">
-                            <div style="width: 100%;">
-                                <label for="prod-price" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; color:#888;">Preço de Venda (R$)</label>
-                                <input type="number" id="prod-price" placeholder="0.00" step="0.01">
-                            </div>
-                            <div style="width: 100%;">
-                                <label for="prod-stock" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; color:#888;">Estoque Inicial</label>
-                                <input type="number" id="prod-stock" placeholder="0" step="1">
-                            </div>
-                        </div>
-                        
-                        <div class="form-row-2">
-                            <div style="width: 100%;">
-                                <label for="prod-tickets" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; color:#888;">Qtd. de Fichas</label>
-                                <input type="number" id="prod-tickets" placeholder="1" step="1" value="1">
-                            </div>
-                            <div style="width: 100%;">
-                                <label for="prod-category" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; color:#888;">Categoria</label>
-                                <select id="prod-category"></select>
-                            </div>
-                        </div>
-                        
-                        <label class="checkbox-label" style="margin-top: 10px;">
-                            <input type="checkbox" id="prod-wholesale"> Preço de ATACADO?
-                        </label>
-                        <button onclick="addProduct()" class="btn-success" style="width:100%; margin-top: 10px;">Salvar Novo Produto</button>
-                    </div>
-                </section>
+                <section id="admin-security" data-admin-section="settings" class="card security-card"><div class="section-heading"><span class="section-icon">🔐</span><div><h3>Segurança da conta</h3><p>Altere a senha administrativa quando precisar.</p></div></div><button class="btn-outline" onclick="openPasswordModal()">Trocar senha administrativa</button></section>
+                <section id="admin-sales" data-admin-section="sales" class="card"><h3>Faturamento Diário</h3><div class="input-date-wrapper" style="margin-bottom:10px;"><input type="date" id="history-date" onchange="fetchHistory()"></div><h2 id="total-revenue">R$ 0,00</h2><button onclick="printDailyReport()" class="btn-success" style="width:100%;margin-top:15px;font-size:14px;padding:12px;">🖨️ Imprimir Fechamento</button></section>
+                <section data-admin-section="sales" class="card"><h3>Suprimento de Caixa</h3><p class="section-note">Registre o fundo de troco colocado no caixa. Ele não é uma venda.</p><div class="form-group-inline"><input id="cash-supply-amount" type="number" min="0.01" step="0.01" placeholder="Valor inicial (R$)"><button onclick="addCashSupply()">Registrar</button></div><input id="cash-supply-note" type="text" placeholder="Observação (opcional)"><div id="cash-supply-summary" class="cash-summary">Fundo de troco de hoje: R$ 0,00</div></section>
+                <section data-admin-section="sales" class="card cash-expense-card"><h3>Saída de Caixa / Sangria</h3><p class="section-note">Registre pagamentos feitos com dinheiro do caixa, como mercadorias, frete ou despesas.</p><div class="form-row-2"><input id="cash-expense-amount" type="number" min="0.01" step="0.01" placeholder="Valor (R$)"><select id="cash-expense-category"><option>Mercadoria</option><option>Frete</option><option>Despesa operacional</option><option>Outros</option></select></div><div class="form-group-inline"><input id="cash-expense-description" type="text" placeholder="Descrição / motivo"><button class="btn-danger" onclick="addCashExpense()">Registrar saída</button></div><div id="cash-expense-summary" class="expense-summary">Saídas de hoje: R$ 0,00</div><ul id="cash-expense-list" class="list mini-list"></ul></section>
+                <section data-admin-section="products" class="card"><h3>Lista de Compras</h3><p class="section-note">Produtos no estoque mínimo ou abaixo dele.</p><ul id="shopping-list" class="list mini-list"></ul><button class="btn-outline" style="width:100%;margin-top:10px;" onclick="printShoppingList()">🖨️ Imprimir lista</button></section>
+                <section id="admin-customers" data-admin-section="customers" class="card"><h3>Clientes & Clube de Crédito</h3><div class="form-group-inline"><input type="text" id="client-name" placeholder="Nome do Cliente"><input type="text" id="client-phone" placeholder="WhatsApp" style="width:110px;"><button onclick="addClient()">Cadastrar</button></div><ul id="admin-client-list" class="list mini-list"></ul></section>
+                <section id="admin-tables" data-admin-section="tables" class="card"><h3>Gerenciar Mesas/Comandas</h3><div class="form-group-inline"><input type="text" id="table-name" placeholder="Ex: Mesa 01"><button onclick="addTable()">Adicionar</button></div><ul id="admin-table-list" class="list mini-list"></ul></section>
+                <section data-admin-section="products" class="card"><h3>Gerenciar Categorias</h3><div class="form-group-inline"><input type="text" id="cat-name" placeholder="Nome da Categoria"><button onclick="addCategory()">Adicionar</button></div><ul id="admin-category-list" class="list mini-list"></ul></section>
+                <section id="admin-products" data-admin-section="products" class="card"><h3>Cadastrar Produto</h3><div class="form-group-stack"><label for="prod-name" style="display:block;text-align:left;font-size:12px;margin-bottom:2px;color:#888;">Nome do Produto</label><input type="text" id="prod-name" placeholder="Ex: 🍺 Skol 300ml"><div class="form-row-2"><div style="width:100%;"><label for="prod-price" style="display:block;text-align:left;font-size:12px;margin-bottom:2px;color:#888;">Preço de Venda (R$)</label><input type="number" id="prod-price" placeholder="0.00" step="0.01"></div><div style="width:100%;"><label for="prod-stock" style="display:block;text-align:left;font-size:12px;margin-bottom:2px;color:#888;">Estoque Inicial</label><input type="number" id="prod-stock" placeholder="0" step="1"></div></div><div class="form-row-2"><div style="width:100%;"><label for="prod-tickets" style="display:block;text-align:left;font-size:12px;margin-bottom:2px;color:#888;">Qtd. de Fichas</label><input type="number" id="prod-tickets" placeholder="1" step="1" value="1"></div><div style="width:100%;"><label for="prod-category" style="display:block;text-align:left;font-size:12px;margin-bottom:2px;color:#888;">Categoria</label><select id="prod-category"></select></div></div><label class="checkbox-label" style="margin-top:10px;"><input type="checkbox" id="prod-wholesale"> Preço de ATACADO?</label><button onclick="addProduct()" class="btn-success" style="width:100%;margin-top:10px;">Salvar Novo Produto</button></div></section>
             </div>
-            
-            <div class="admin-col-right">
-                <section data-admin-section="products" class="card">
-                    <h3>Produtos no Sistema</h3>
-                    <input id="product-search" class="list-search" type="search" placeholder="Buscar produto ou categoria..." oninput="filterAdminProducts()">
-                    <ul id="admin-product-list" class="list tall-list"></ul>
-                </section>
-                <section data-admin-section="sales" class="card">
-                    <h3>Histórico de Vendas</h3>
-                    <ul id="admin-history-list" class="list tall-list"></ul>
-                </section>
-            </div>
+            <div class="admin-col-right"><section data-admin-section="products" class="card"><h3>Produtos no Sistema</h3><input id="product-search" class="list-search" type="search" placeholder="Buscar produto ou categoria..." oninput="filterAdminProducts()"><ul id="admin-product-list" class="list tall-list"></ul></section><section data-admin-section="sales" class="card"><h3>Histórico de Vendas</h3><ul id="admin-history-list" class="list tall-list"></ul></section></div>
         </main>
     </div>
 
-    <div id="password-modal" class="modal">
-        <div class="modal-box">
-            <div class="modal-title"><span>🔐</span><h2>Trocar senha</h2></div>
-            <p class="modal-help">Use ao menos 8 caracteres e não reutilize uma senha fácil de adivinhar.</p>
-            <input type="password" id="current-admin-password" placeholder="Senha atual" autocomplete="current-password">
-            <input type="password" id="new-admin-password" placeholder="Nova senha" autocomplete="new-password">
-            <input type="password" id="confirm-admin-password" placeholder="Confirmar nova senha" autocomplete="new-password">
-            <div class="modal-actions"><button class="btn-outline" onclick="closePasswordModal()">Cancelar</button><button onclick="changeAdminPassword()">Salvar nova senha</button></div>
-        </div>
-    </div>
+    <div id="password-modal" class="modal"><div class="modal-box"><div class="modal-title"><span>🔐</span><h2>Trocar senha</h2></div><p class="modal-help">Use ao menos 8 caracteres e não reutilize uma senha fácil de adivinhar.</p><input type="password" id="current-admin-password" placeholder="Senha atual" autocomplete="current-password"><input type="password" id="new-admin-password" placeholder="Nova senha" autocomplete="new-password"><input type="password" id="confirm-admin-password" placeholder="Confirmar nova senha" autocomplete="new-password"><div class="modal-actions"><button class="btn-outline" onclick="closePasswordModal()">Cancelar</button><button onclick="changeAdminPassword()">Salvar nova senha</button></div></div></div>
 
-    <!-- TELA GARÇOM (REFORMULADA COM MENU) -->
     <div id="waiter-view" class="view">
-        <header style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <button id="btn-waiter-back" style="display: none; background: transparent; border: 1px solid var(--border); color: var(--text-main); padding: 6px 12px; border-radius: 6px;" onclick="openWaiterMenu('home')">⬅️ Voltar</button>
-                <h1 id="waiter-header-title">Atendimento</h1>
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <button class="theme-btn" onclick="toggleTheme()" style="padding: 6px 10px;">🌓</button>
-                <button onclick="logout()" class="btn-danger" style="padding: 8px 15px;">Sair</button>
-            </div>
-        </header>
-
+        <header style="display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;gap:10px;align-items:center;"><button id="btn-waiter-back" style="display:none;background:transparent;border:1px solid var(--border);color:var(--text-main);padding:6px 12px;border-radius:6px;" onclick="openWaiterMenu('home')">⬅️ Voltar</button><h1 id="waiter-header-title">Atendimento</h1></div><div style="display:flex;gap:10px;"><button class="theme-btn" onclick="toggleTheme()" style="padding:6px 10px;">🌓</button><button onclick="logout()" class="btn-danger" style="padding:8px 15px;">Sair</button></div></header>
         <main>
-            <!-- BANNER DE MESA ATIVA (Aparece se estiver dentro de uma comanda) -->
-            <div id="active-table-banner" style="display: none; background: #0ea5e9; color: white; padding: 12px 15px; border-radius: 8px; margin-bottom: 15px; align-items: center; justify-content: space-between;">
-                <span id="banner-table-text" style="font-weight: bold; font-size: 15px;"></span>
-                <button onclick="closeTableMode()" style="background: white; color: #0ea5e9; padding: 6px 12px; font-size: 13px; font-weight:bold; border-radius:4px; border:none;">Concluir ✔️</button>
-            </div>
-
-            <!-- TELA 1: HOME (4 Botões) -->
-            <div id="waiter-home-section" class="waiter-menu-grid">
-                <button class="btn-main-menu" onclick="openWaiterMenu('fichas')"><span class="icon">🎟️</span> Venda Ficha</button>
-                <button class="btn-main-menu" onclick="openWaiterMenu('atacado')"><span class="icon">📦</span> Venda Atacado</button>
-                <button class="btn-main-menu" onclick="openWaiterMenu('avulsa')"><span class="icon">💰</span> Venda Avulsa</button>
-                <button class="btn-main-menu" onclick="openWaiterMenu('mesas')"><span class="icon">🍽️</span> Comandas</button>
-            </div>
-
-            <!-- TELA 2: PRODUTOS (Fichas ou Atacado) -->
-            <div id="caixa-section" style="display: none;">
-                <div id="category-tabs" class="tabs-container"></div>
-                <div class="search-container"><input type="text" id="search-input" placeholder="Buscar produto..." onkeyup="searchProducts()"></div>
-                <div id="waiter-product-grid" class="grid" style="padding-bottom: 80px;"></div>
-            </div>
-
-            <!-- TELA 3: COMANDAS (Mesas) -->
-            <div id="mesas-section" style="display: none;">
-                <div id="waiter-tables-grid" class="grid"></div>
-            </div>
-
-            <!-- TELA 4: VENDA AVULSA -->
-            <div id="avulsa-section" style="display: none; padding: 20px;">
-                <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; text-align: center; max-width: 400px; margin: 0 auto; border: 1px solid var(--border);">
-                    <label style="display:block; color:var(--text-muted); margin-bottom:10px;">Valor da Venda Avulsa (R$)</label>
-                    <input type="number" id="avulsa-valor" placeholder="0,00" step="0.01" style="font-size: 32px; text-align: center; font-weight: bold; padding: 20px; width: 100%; box-sizing:border-box; margin-bottom: 25px; border-radius: 8px;">
-                    
-                    <h3 style="font-size: 15px; margin-bottom: 15px; color: var(--primary);">Forma de Pagamento</h3>
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <button class="btn-pay" style="padding: 15px; font-size: 16px;" onclick="processAvulsa('Dinheiro')">💵 Dinheiro</button>
-                        <button class="btn-pay" style="padding: 15px; font-size: 16px;" onclick="processAvulsa('Cartao')">💳 Cartão</button>
-                        <button class="btn-pay pix-btn" style="padding: 15px; font-size: 16px;" onclick="processAvulsa('Pix')">💠 PIX</button>
-                    </div>
-                </div>
-            </div>
+            <div id="active-table-banner" style="display:none;background:#0ea5e9;color:white;padding:12px 15px;border-radius:8px;margin-bottom:15px;align-items:center;justify-content:space-between;"><span id="banner-table-text" style="font-weight:bold;font-size:15px;"></span><button onclick="closeTableMode()" style="background:white;color:#0ea5e9;padding:6px 12px;font-size:13px;font-weight:bold;border-radius:4px;border:none;">Concluir ✔️</button></div>
+            <div id="waiter-home-section" class="waiter-menu-grid"><button class="btn-main-menu" onclick="openWaiterMenu('fichas')"><span class="icon">🎟️</span> Venda Ficha</button><button class="btn-main-menu" onclick="openWaiterMenu('atacado')"><span class="icon">📦</span> Venda Atacado</button><button class="btn-main-menu" onclick="openWaiterMenu('avulsa')"><span class="icon">💰</span> Venda Avulsa</button><button class="btn-main-menu" onclick="openWaiterMenu('mesas')"><span class="icon">🍽️</span> Comandas</button></div>
+            <div id="caixa-section" style="display:none;"><div id="category-tabs" class="tabs-container"></div><div class="search-container"><input type="text" id="search-input" placeholder="Buscar produto..." onkeyup="searchProducts()"></div><div id="waiter-product-grid" class="grid" style="padding-bottom:80px;"></div></div>
+            <div id="mesas-section" style="display:none;"></div>
+            <div id="avulsa-section" style="display:none;"><div class="card" style="max-width:520px;margin:20px auto;text-align:center;"><h2>Venda Avulsa</h2><input id="avulsa-valor" type="number" step="0.01" min="0.01" placeholder="Valor da venda"><div class="payment-methods"><button class="btn-pay" onclick="processAvulsa('Dinheiro')">💵 Dinheiro</button><button class="btn-pay" onclick="processAvulsa('Cartao')">💳 Cartão</button><button class="btn-pay pix-btn" onclick="processAvulsa('Pix')">💠 PIX</button></div></div></div>
         </main>
-        
-        <!-- BOTÃO FLUTUANTE DE CARRINHO (Aparece só em Fichas/Atacado/Mesa Ativa) -->
-        <div id="cart-floating-btn" onclick="handleFloatingClick()">
-            <div class="cart-info"><span id="cart-count">0 itens</span><strong id="cart-total">R$ 0,00</strong></div>
-            <span id="cart-action-text">Ver Carrinho 🛒</span>
-        </div>
     </div>
 
-    <!-- MODAIS ADMIN / MESAS / CARRINHO MANTEÚDOS INTACTOS ABAIXO -->
-    <!-- MODAL GERENCIAR CLUBE DO CLIENTE & EXTRATO -->
-    <div id="customer-club-modal" class="modal">
-        <div class="modal-box" style="max-width: 480px; text-align: left;">
-            <h2 id="club-modal-name" style="color: var(--primary); margin-bottom: 5px;">Clube do Cliente</h2>
-            <p id="club-modal-subtitle" style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Gerencie o plano, saldo e histórico de consumo.</p>
-            
-            <div style="background: var(--bg-card); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border);">
-                <label style="font-size: 12px; color: var(--text-muted);">Plano Ativo:</label>
-                <select id="modal-club-plan" style="width: 100%; margin-bottom: 10px; padding: 8px;">
-                    <option value="Nenhum">Nenhum (Sem Plano)</option>
-                    <option value="Bronze">Bronze (Paga R$ 150 / Ganha R$ 170)</option>
-                    <option value="Prata">Prata (Paga R$ 300 / Ganha R$ 350)</option>
-                    <option value="Ouro">Ouro (Paga R$ 500 / Ganha R$ 600 + 2 Porções + 40% Rollover)</option>
-                </select>
-                <label style="font-size: 12px; color: var(--text-muted);">Saldo Atual de Créditos (R$):</label>
-                <input type="number" id="modal-club-balance" step="0.01" style="width: 100%; padding: 8px;">
-            </div>
-
-            <h3 style="font-size: 14px; margin-bottom: 5px;">Extrato de Consumo do Clube 📋</h3>
-            <div style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 8px; margin-bottom: 15px; max-height: 180px; overflow-y: auto;">
-                <ul id="club-history-list" class="list" style="margin: 0; border: none;"></ul>
-            </div>
-            <input type="hidden" id="modal-club-customer-id">
-            <div style="display: flex; gap: 10px;">
-                <button class="btn-success" style="flex: 1; background: var(--success);" onclick="saveCustomerClub()">Salvar Alterações</button>
-                <button class="btn-danger" style="flex: 1;" onclick="closeCustomerClubModal()">Fechar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL EXTRATO DE FIADO -->
-    <div id="customer-debt-modal" class="modal">
-        <div class="modal-box" style="max-width: 450px;">
-            <h2 id="debt-modal-title" style="color: var(--primary); margin-bottom: 5px;">Extrato de Fiado</h2>
-            <p id="debt-modal-subtitle" style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;"></p>
-            <div style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 8px; margin-bottom: 15px;">
-                <ul id="debt-items-list" class="list" style="max-height: 220px; text-align: left; margin: 0; border: none;"></ul>
-                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px;">
-                    <span style="font-weight: bold;">Total Devido:</span>
-                    <strong style="color: var(--danger); font-size: 20px;" id="debt-total-amount">R$ 0,00</strong>
-                </div>
-            </div>
-            <div class="modal-actions" style="flex-direction: column; gap: 10px;">
-                <button class="btn-success" id="btn-settle-debt" onclick="" style="background: var(--success);">💰 Quitar Conta (Zerar Dívida)</button>
-                <button class="btn-danger" onclick="closeCustomerDebtModal()">Fechar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL SELECIONAR CLIENTE -->
-    <div id="customer-select-modal" class="modal">
-        <div class="modal-box">
-            <h2 style="color: var(--primary);" id="customer-select-title">Selecione o Cliente</h2>
-            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;" id="customer-select-subtitle">A conta será associada a esta pessoa.</p>
-            <ul id="customer-select-list" class="list" style="max-height: 200px; text-align: left; margin-bottom: 15px;"></ul>
-            <button class="btn-danger" style="width: 100%;" onclick="closeCustomerModal()">Cancelar</button>
-        </div>
-    </div>
-
-    <!-- MODAL GERENCIAR MESA -->
-    <div id="table-manage-modal" class="modal">
-        <div class="modal-box">
-            <h2 id="tm-title" style="color: var(--primary);">Mesa 01</h2>
-            <div style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 8px; margin: 15px 0;">
-                <ul id="tm-items" class="list" style="max-height: 200px; text-align: left; margin: 0; border: none;"></ul>
-                <h3 style="text-align: right; color: var(--success); margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px;" id="tm-subtotal">Subtotal: R$ 0,00</h3>
-            </div>
-            <div class="modal-actions" style="flex-direction: column; gap: 10px;">
-                <button class="btn-success" onclick="startTableMode()">➕ Adicionar Produtos</button>
-                <button class="btn-pay" style="background: #3b82f6; border-color: #2563eb; color: white;" id="tm-print-btn" onclick="printPartialTable()">🖨️ Imprimir Parcial</button>
-                <button class="btn-pay" id="tm-pay-btn" onclick="openTableCheckout()">💳 Fechar Conta</button>
-                <button class="btn-danger" onclick="closeTableManageModal()">Voltar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL FECHAMENTO MESA -->
-    <div id="table-checkout-modal" class="modal">
-        <div class="modal-box">
-            <h2 style="margin-bottom: 5px;">Fechamento de Conta</h2>
-            <p id="tc-title" style="color: var(--primary); font-weight: bold; margin-bottom: 10px;"></p>
-            <div style="background: rgba(0,0,0,0.1); padding: 15px; border-radius: 8px; text-align: left; margin-bottom: 15px;">
-                <label class="checkbox-label" style="margin: 0 0 10px 0;"><input type="checkbox" id="tc-tax" onchange="updateTableTotal()" checked> Adicionar 10% (Serviço)</label>
-                <div style="margin-bottom: 10px; background: var(--bg-color); padding: 10px; border-radius: 6px; border: 1px solid var(--border);">
-                    <label style="font-size: 13px; color: var(--text-muted);">Dividir por quantas pessoas?</label>
-                    <input type="number" id="tc-split" value="1" min="1" step="1" oninput="updateTableTotal()" style="margin-top: 5px; font-size: 18px; text-align: center; font-weight: bold;">
-                </div>
-                <div style="border-top: 1px solid var(--border); padding-top: 10px;">
-                    <h2 style="color: var(--success); margin-top: 5px; text-align: center; font-size: 24px;" id="tc-total">Total: R$ 0,00</h2>
-                    <div id="tc-per-person-container" style="display: none; background: #3b82f6; color: white; padding: 10px; border-radius: 6px; text-align: center; margin-top: 10px;"><strong style="font-size: 20px;" id="tc-per-person">R$ 0,00</strong></div>
-                </div>
-            </div>
-            <h3 style="font-size: 15px; margin-bottom: 10px;">Forma de Pagamento</h3>
-            <div class="payment-methods">
-                <button class="btn-pay" onclick="processTableCheckout('Dinheiro')">💵 Dinheiro</button>
-                <button class="btn-pay" onclick="processTableCheckout('Cartao')">💳 Cartão</button>
-                <button class="btn-pay pix-btn" onclick="processTableCheckout('Pix')">💠 PIX</button>
-                <button class="btn-pay" onclick="openSplitPayment('mesa')">➗ Dividir pagamento</button>
-                <button class="btn-pay" style="background: #f59e0b; color: white; border-color: #d97706;" onclick="openCustomerModal('mesa', 'fiado')">📒 Fiado</button>
-                <button class="btn-pay" style="background: #10b981; color: white; border-color: #059669;" onclick="openCustomerModal('mesa', 'clube')">⭐ Clube</button>
-            </div>
-            <button class="btn-danger" style="margin-top: 15px; width: 100%;" onclick="closeTableCheckoutModal()">Cancelar</button>
-        </div>
-    </div>
-
-    <!-- MODAL CARRINHO CAIXA RÁPIDO -->
-    <div id="cart-modal" class="modal">
-        <div class="modal-box cart-modal-box">
-            <h2>Carrinho</h2>
-            <ul id="cart-items-list" class="list" style="margin: 20px 0; max-height: 250px;"></ul>
-            <div class="modal-total">Total: <strong id="checkout-total">R$ 0,00</strong></div>
-            <h3>Forma de Pagamento</h3>
-            <div class="payment-methods">
-                <button class="btn-pay" onclick="processCheckout('Dinheiro')">💵 Dinheiro</button>
-                <button class="btn-pay" onclick="processCheckout('Cartao')">💳 Cartão</button>
-                <button class="btn-pay pix-btn" onclick="processCheckout('Pix')">💠 PIX</button>
-                <button class="btn-pay" onclick="openSplitPayment('caixa')">➗ Dividir pagamento</button>
-                <button class="btn-pay" style="background: #f59e0b; color: white; border-color: #d97706;" onclick="openCustomerModal('caixa', 'fiado')">📒 Fiado</button>
-                <button class="btn-pay" style="background: #10b981; color: white; border-color: #059669;" onclick="openCustomerModal('caixa', 'clube')">⭐ Clube</button>
-            </div>
-            <button class="btn-danger" style="margin-top: 15px;" onclick="closeCartModal()">Cancelar</button>
-        </div>
-    </div>
-
-    <div id="pix-modal" class="modal">
-        <div class="modal-box">
-            <h2 style="color: #0ea5e9;">Pagamento PIX</h2>
-            <div id="pix-qr-container" style="background: white; padding: 15px; border-radius: 10px; margin: 20px auto; width: fit-content; min-height: 200px;"><p style="color: black;">Gerando PIX...</p></div>
-            <p id="pix-status-text" style="color: #f59e0b; font-weight: bold; margin-bottom: 15px;">Aguardando... ⏳</p>
-            <button class="btn-danger" onclick="cancelPix()">Cancelar</button>
-        </div>
-    </div>
-
-    <div id="split-payment-modal" class="modal"><div class="modal-box">
-        <h2>Adicionar pagamentos</h2><p class="modal-help">Adicione quantas parcelas precisar. Cada PIX gera seu próprio QR Code.</p>
-        <div id="split-payment-total" class="modal-total">Total</div>
-        <div id="split-payment-list"></div>
-        <button class="btn-success" onclick="addSplitPayment()">+ Adicionar pagamento</button>
-        <button class="btn-danger" style="margin-top:10px;" onclick="closeSplitPayment()">Cancelar</button>
-    </div></div>
-
-    <div id="edit-prod-modal" class="modal"><div class="modal-box">
-        <h2>Editar Produto</h2>
-        <input type="hidden" id="edit-prod-id">
-        <input type="text" id="edit-prod-name" placeholder="Nome do produto">
-        <input type="number" id="edit-prod-price" placeholder="Preço">
-        <input type="number" id="edit-prod-stock" placeholder="Estoque">
-        <input type="number" id="edit-prod-tickets" placeholder="1" step="1">
-        <label for="edit-prod-category" style="display:block; text-align:left; font-size:12px; margin-bottom:2px; margin-top:10px; color:#888;">Categoria</label>
-        <select id="edit-prod-category"></select>
-        <div style="margin-top: 15px; margin-bottom: 10px; text-align: left;">
-            <label class="checkbox-label" style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="edit-prod-wholesale"> Preço de ATACADO</label>
-        </div>
-        <div class="modal-actions" style="margin-top: 20px; display: flex; gap: 10px;">
-            <button class="btn-danger" style="flex: 1;" onclick="closeEditProdModal()">Cancelar</button>
-            <button class="btn-success" style="flex: 1;" onclick="saveEditProduct()">Salvar</button>
-        </div>
-    </div></div>
+    <div id="customer-debt-modal" class="modal"><div class="modal-box"><h2 id="debt-title">Cliente</h2><ul id="debt-items-list" class="list" style="max-height:220px;text-align:left;margin:0;border:none;"></ul><div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:10px;margin-top:10px;"><span style="font-weight:bold;">Total Devido:</span><strong style="color:var(--danger);font-size:20px;" id="debt-total-amount">R$ 0,00</strong></div><div class="modal-actions" style="flex-direction:column;gap:10px;"><button class="btn-success" id="btn-settle-debt" onclick="" style="background:var(--success);">💰 Quitar Conta (Zerar Dívida)</button><button class="btn-danger" onclick="closeCustomerDebtModal()">Fechar</button></div></div></div>
+    <div id="customer-select-modal" class="modal"><div class="modal-box"><h2 style="color:var(--primary);" id="customer-select-title">Selecione o Cliente</h2><p style="font-size:13px;color:var(--text-muted);margin-bottom:15px;" id="customer-select-subtitle">A conta será associada a esta pessoa.</p><ul id="customer-select-list" class="list" style="max-height:200px;text-align:left;margin-bottom:15px;"></ul><button class="btn-danger" style="width:100%;" onclick="closeCustomerModal()">Cancelar</button></div></div>
+    <div id="table-manage-modal" class="modal"><div class="modal-box"><h2 id="tm-title" style="color:var(--primary);">Mesa 01</h2><div style="background:rgba(0,0,0,.1);padding:10px;border-radius:8px;margin:15px 0;"><ul id="tm-items" class="list" style="max-height:200px;text-align:left;margin:0;border:none;"></ul><h3 style="text-align:right;color:var(--success);margin-top:10px;border-top:1px solid var(--border);padding-top:10px;" id="tm-subtotal">Subtotal: R$ 0,00</h3></div><div class="modal-actions" style="flex-direction:column;gap:10px;"><button class="btn-success" onclick="startTableMode()">➕ Adicionar Produtos</button><button class="btn-pay" style="background:#3b82f6;border-color:#2563eb;color:white;" id="tm-print-btn" onclick="printPartialTable()">🖨️ Imprimir Parcial</button><button class="btn-pay" id="tm-pay-btn" onclick="openTableCheckout()">💳 Fechar Conta</button><button class="btn-danger" onclick="closeTableManageModal()">Voltar</button></div></div></div>
+    <div id="table-checkout-modal" class="modal"><div class="modal-box"><h2 style="margin-bottom:5px;">Fechamento de Conta</h2><p id="tc-title" style="color:var(--primary);font-weight:bold;margin-bottom:10px;"></p><div style="background:rgba(0,0,0,.1);padding:15px;border-radius:8px;text-align:left;margin-bottom:15px;"><label class="checkbox-label" style="margin:0 0 10px 0;"><input type="checkbox" id="tc-tax" onchange="updateTableTotal()" checked> Adicionar 10% (Serviço)</label><div style="margin-bottom:10px;background:var(--bg-color);padding:10px;border-radius:6px;border:1px solid var(--border);"><label style="font-size:13px;color:var(--text-muted);">Dividir por quantas pessoas?</label><input type="number" id="tc-split" value="1" min="1" step="1" oninput="updateTableTotal()" style="margin-top:5px;font-size:18px;text-align:center;font-weight:bold;"></div><div style="border-top:1px solid var(--border);padding-top:10px;"><h2 style="color:var(--success);margin-top:5px;text-align:center;font-size:24px;" id="tc-total">Total: R$ 0,00</h2><div id="tc-per-person-container" style="display:none;background:#3b82f6;color:white;padding:10px;border-radius:6px;text-align:center;margin-top:10px;"><strong style="font-size:20px;" id="tc-per-person">R$ 0,00</strong></div></div></div><h3 style="font-size:15px;margin-bottom:10px;">Forma de Pagamento</h3><div class="payment-methods"><button class="btn-pay" onclick="processTableCheckout('Dinheiro')">💵 Dinheiro</button><button class="btn-pay" onclick="processTableCheckout('Cartao')">💳 Cartão</button><button class="btn-pay pix-btn" onclick="processTableCheckout('Pix')">💠 PIX</button><button class="btn-pay" onclick="openSplitPayment('mesa')">➗ Dividir pagamento</button><button class="btn-pay" style="background:#f59e0b;color:white;border-color:#d97706;" onclick="openCustomerModal('mesa','fiado')">📒 Fiado</button><button class="btn-pay" style="background:#10b981;color:white;border-color:#059669;" onclick="openCustomerModal('mesa','clube')">⭐ Clube</button></div><button class="btn-danger" style="margin-top:15px;width:100%;" onclick="closeTableCheckoutModal()">Cancelar</button></div></div>
+    <div id="cart-modal" class="modal"><div class="modal-box cart-modal-box"><h2>Carrinho</h2><ul id="cart-items-list" class="list" style="margin:20px 0;max-height:250px;"></ul><div class="modal-total">Total: <strong id="checkout-total">R$ 0,00</strong></div><h3>Forma de Pagamento</h3><div class="payment-methods"><button class="btn-pay" onclick="processCheckout('Dinheiro')">💵 Dinheiro</button><button class="btn-pay" onclick="processCheckout('Cartao')">💳 Cartão</button><button class="btn-pay pix-btn" onclick="processCheckout('Pix')">💠 PIX</button><button class="btn-pay" onclick="openSplitPayment('caixa')">➗ Dividir pagamento</button><button class="btn-pay" style="background:#f59e0b;color:white;border-color:#d97706;" onclick="openCustomerModal('caixa','fiado')">📒 Fiado</button><button class="btn-pay" style="background:#10b981;color:white;border-color:#059669;" onclick="openCustomerModal('caixa','clube')">⭐ Clube</button></div><button class="btn-danger" style="margin-top:15px;" onclick="closeCartModal()">Cancelar</button></div></div>
+    <div id="pix-modal" class="modal"><div class="modal-box"><h2 style="color:#0ea5e9;">Pagamento PIX</h2><div id="pix-qr-container" style="background:white;padding:15px;border-radius:10px;margin:20px auto;width:fit-content;min-height:200px;"><p style="color:black;">Gerando PIX...</p></div><p id="pix-status-text" style="color:#f59e0b;font-weight:bold;margin-bottom:15px;">Aguardando... ⏳</p><button class="btn-danger" onclick="cancelPix()">Cancelar</button></div></div>
+    <div id="split-payment-modal" class="modal"><div class="modal-box"><h2>Adicionar pagamentos</h2><p class="modal-help">Adicione quantas parcelas precisar. Cada PIX gera seu próprio QR Code.</p><div id="split-payment-total" class="modal-total">Total</div><div id="split-payment-list"></div><button class="btn-success" onclick="addSplitPayment()">+ Adicionar pagamento</button><button class="btn-danger" style="margin-top:10px;" onclick="closeSplitPayment()">Cancelar</button></div></div>
+    <div id="edit-prod-modal" class="modal"><div class="modal-box"><h2>Editar Produto</h2><input type="hidden" id="edit-prod-id"><input type="text" id="edit-prod-name" placeholder="Nome do produto"><input type="number" id="edit-prod-price" placeholder="Preço"><input type="number" id="edit-prod-stock" placeholder="Estoque"><input type="number" id="edit-prod-tickets" placeholder="1" step="1"><label for="edit-prod-category" style="display:block;text-align:left;font-size:12px;margin-bottom:2px;margin-top:10px;color:#888;">Categoria</label><select id="edit-prod-category"></select><div style="margin-top:15px;margin-bottom:10px;text-align:left;"><label class="checkbox-label" style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="edit-prod-wholesale"> Preço de ATACADO</label></div><div class="modal-actions" style="margin-top:20px;display:flex;gap:10px;"><button class="btn-danger" style="flex:1;" onclick="closeEditProdModal()">Cancelar</button><button class="btn-success" style="flex:1;" onclick="saveEditProduct()">Salvar</button></div></div></div>
 
     <div id="print-area"></div>
-    <script src="app.js"></script>
+
+    <!-- IMPORTANTE: carregar diretamente, sem depender do Service Worker. -->
+    <script src="product-images.js?v=2" defer></script>
+    <script src="app.js?v=2"></script>
     <script src="dashboard.js"></script>
-    </body>
+</body>
 </html>
