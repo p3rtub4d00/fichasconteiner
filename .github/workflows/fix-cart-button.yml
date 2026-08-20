@@ -1,0 +1,40 @@
+name: Fix cart button
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  fix-cart-button:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Corrigir onclick do carrinho
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('public/index.html')
+          text = path.read_text(encoding='utf-8')
+          old = 'id="cart-floating-btn" onclick="handleFloatingClick"'
+          new = 'id="cart-floating-btn" onclick="handleFloatingClick()"'
+          if old in text:
+              path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+
+      - name: Commit da correção
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/index.html
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração necessária."
+          else
+            git commit -m "fix: restaurar clique do carrinho"
+            git push
+          fi
