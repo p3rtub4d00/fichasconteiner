@@ -1,4 +1,4 @@
-const SW_VERSION = 'conteiner-beer-v2';
+const SW_VERSION = 'conteiner-beer-v3';
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();
@@ -9,9 +9,8 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(self.clients.claim());
 });
 
-// Mantém o app.js original intacto e injeta apenas a camada visual/gerenciamento
-// de fotos. Assim as regras de venda, estoque, comandas e pagamentos continuam
-// no app.js original.
+// Injeta uma camada isolada de fotos sobre o app.js original.
+// Nenhuma regra de venda, estoque, comanda ou pagamento é reescrita aqui.
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
     if (event.request.method !== 'GET' || !url.pathname.endsWith('/app.js')) return;
@@ -32,7 +31,6 @@ self.addEventListener('fetch', (event) => {
         try { return JSON.parse(localStorage.getItem(IMAGE_KEY) || '{}'); }
         catch (_) { return {}; }
     }
-
     function writeImages(images) {
         try {
             const json = JSON.stringify(images);
@@ -47,22 +45,18 @@ self.addEventListener('fetch', (event) => {
             return false;
         }
     }
-
     function imageFor(product) {
         const images = readImages();
         return images[product?._id] || images['name:' + String(product?.name || '').toLowerCase()] || '';
     }
-
     function escapeText(value) {
         return String(value ?? '').replace(/[&<>\"']/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#039;' }[char]));
     }
-
-    function productImage(product, size) {
+    function productImage(product) {
         const src = imageFor(product);
         if (!src) return '<div class="cb-product-placeholder" aria-label="Produto sem foto">🍺</div>';
         return '<img class="cb-product-image" src="' + src + '" alt="' + escapeText(product.name) + '" loading="lazy">';
     }
-
     function compress(file) {
         return new Promise((resolve, reject) => {
             if (!file || !file.type.startsWith('image/')) return reject(new Error('Selecione uma imagem.'));
@@ -79,6 +73,7 @@ self.addEventListener('fetch', (event) => {
                     canvas.width = Math.max(1, Math.round(img.width * scale));
                     canvas.height = Math.max(1, Math.round(img.height * scale));
                     const ctx = canvas.getContext('2d');
+                    if (!ctx) return reject(new Error('Não foi possível processar a imagem.'));
                     ctx.fillStyle = '#ffffff';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -89,7 +84,6 @@ self.addEventListener('fetch', (event) => {
             reader.readAsDataURL(file);
         });
     }
-
     function ensureStyles() {
         if (document.getElementById('cb-product-image-styles')) return;
         const style = document.createElement('style');
@@ -106,7 +100,6 @@ self.addEventListener('fetch', (event) => {
         `;
         document.head.appendChild(style);
     }
-
     function setupNewProductImage() {
         const host = document.getElementById('prod-wholesale')?.closest('.form-group-stack');
         if (!host || document.getElementById('cb-new-image-box')) return;
@@ -133,7 +126,6 @@ self.addEventListener('fetch', (event) => {
             document.getElementById('cb-new-preview').innerHTML = '🍺';
         });
     }
-
     function setupEditProductImage() {
         const modal = document.getElementById('edit-prod-modal');
         if (!modal || document.getElementById('cb-edit-image-box')) return;
@@ -159,7 +151,6 @@ self.addEventListener('fetch', (event) => {
             document.getElementById('cb-edit-preview').innerHTML = '🍺';
         });
     }
-
     function renderWaiterWithImages(products) {
         const grid = document.getElementById('waiter-product-grid');
         if (!grid) return;
@@ -171,7 +162,6 @@ self.addEventListener('fetch', (event) => {
             return '<div class="' + classes + ' cb-product-card" onclick="' + (out ? '' : 'addToCart(\\'' + p._id + '\\')') + '">' + productImage(p) + '<strong>' + escapeText(p.name) + '</strong><br><span>R$ ' + Number(p.price || 0).toFixed(2) + '</span><small>Estoque: ' + p.stock + '</small></div>';
         }).join('');
     }
-
     function renderAdminWithImages(products) {
         const list = document.getElementById('admin-product-list');
         if (!list) return;
@@ -180,7 +170,6 @@ self.addEventListener('fetch', (event) => {
         html += products.map(p => '<li><div style="display:flex;align-items:center;gap:10px">' + (imageFor(p) ? '<img class="cb-admin-product-image" src="' + imageFor(p) + '" alt="">' : '<div class="cb-admin-product-image" style="display:flex;align-items:center;justify-content:center;font-size:22px">🍺</div>') + '<div><strong>' + escapeText(p.name) + '</strong> ' + (p.isWholesale ? '<span class="badge-atacado">ATACADO</span>' : '') + '<br><small>Estoque: ' + p.stock + '</small></div></div><div style="display:flex;gap:5px;align-items:center"><span>R$ ' + Number(p.price||0).toFixed(2) + '</span><button class="btn-pay" style="margin:0;padding:4px 8px;font-size:12px;background:var(--primary)" onclick="openEditProdModal(\\'' + p._id + '\\')">✏️</button><button class="btn-danger" style="margin:0;padding:4px 8px" onclick="deleteProduct(\\'' + p._id + '\\')">X</button></div></li>').join('');
         list.innerHTML = html;
     }
-
     function saveImageForProduct(product, image) {
         const images = readImages();
         const key = product?._id || ('name:' + String(product?.name || '').toLowerCase());
@@ -188,16 +177,13 @@ self.addEventListener('fetch', (event) => {
         else if (image) images[key] = image;
         writeImages(images);
     }
-
     function patchFunctions() {
         if (typeof window.renderWaiterGrid === 'function' && !window.renderWaiterGrid.__cbWrapped) {
-            const original = window.renderWaiterGrid;
             const wrapped = function(products) { return renderWaiterWithImages(products); };
             wrapped.__cbWrapped = true;
             window.renderWaiterGrid = wrapped;
         }
         if (typeof window.renderAdminProducts === 'function' && !window.renderAdminProducts.__cbWrapped) {
-            const original = window.renderAdminProducts;
             const wrapped = function(products) { return renderAdminWithImages(products); };
             wrapped.__cbWrapped = true;
             window.renderAdminProducts = wrapped;
@@ -227,8 +213,7 @@ self.addEventListener('fetch', (event) => {
             const wrapped = function(id) {
                 editImageState = undefined;
                 original(id);
-                const p = (window.allProducts || []).find(x => x._id === id);
-                const src = p ? imageFor(p) : '';
+                const src = readImages()[id] || '';
                 const preview = document.getElementById('cb-edit-preview');
                 if (preview) preview.innerHTML = src ? '<img class="cb-image-preview" src="' + src + '" alt="Foto atual">' : '🍺';
             };
@@ -240,33 +225,30 @@ self.addEventListener('fetch', (event) => {
             const wrapped = async function() {
                 const id = document.getElementById('edit-prod-id')?.value;
                 await original();
-                if (id && editImageState !== undefined) {
-                    const p = (window.allProducts || []).find(x => x._id === id) || { _id: id };
-                    saveImageForProduct(p, editImageState);
-                }
+                if (id && editImageState !== undefined) saveImageForProduct({ _id: id }, editImageState);
                 editImageState = undefined;
             };
             wrapped.__cbWrapped = true;
             window.saveEditProduct = wrapped;
         }
     }
-
     function init() {
         ensureStyles();
         setupNewProductImage();
         setupEditProductImage();
         patchFunctions();
     }
-
-    window.addEventListener('load', () => {
-        init();
-        setTimeout(init, 500);
-        setTimeout(init, 1500);
+    window.addEventListener('load', () => { init(); setTimeout(init, 500); setTimeout(init, 1500); });
+    const observer = new MutationObserver(() => {
+        if (window.__cbImageMutationBusy) return;
+        window.__cbImageMutationBusy = true;
+        setTimeout(() => { init(); window.__cbImageMutationBusy = false; }, 50);
     });
-    const observer = new MutationObserver(() => { if (!window.__cbImageMutationBusy) { window.__cbImageMutationBusy = true; setTimeout(() => { init(); window.__cbImageMutationBusy = false; }, 50); } });
     observer.observe(document.documentElement, { childList: true, subtree: true });
 })();
 `;
-        return new Response(source + '\n' + enhancement, { status: response.status, statusText: response.statusText, headers: response.headers });
+        const headers = new Headers();
+        headers.set('Content-Type', response.headers.get('Content-Type') || 'application/javascript; charset=utf-8');
+        return new Response(source + '\n' + enhancement, { status: response.status, statusText: response.statusText, headers });
     })());
 });
