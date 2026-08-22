@@ -15,25 +15,30 @@
         margin: 0 !important;
         padding: 0 !important;
         background: #fff !important;
+        color: #000 !important;
+        overflow: visible !important;
       }
 
+      /* Não imprime a tela do PDV. Isso inclui o botão "Imagens dos produtos". */
       body * { visibility: hidden !important; }
       #print-area, #print-area * { visibility: visible !important; }
 
       #print-area {
         display: block !important;
-        position: absolute !important;
+        position: fixed !important;
         left: 50% !important;
         top: 0 !important;
         transform: translateX(-50%) !important;
         width: 48mm !important;
         max-width: 48mm !important;
         min-width: 48mm !important;
+        height: auto !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #fff !important;
         color: #000 !important;
         overflow: visible !important;
+        box-sizing: border-box !important;
       }
 
       #print-area .ticket {
@@ -42,26 +47,30 @@
         width: 48mm !important;
         max-width: 48mm !important;
         min-width: 48mm !important;
+        height: auto !important;
         margin: 0 auto !important;
-        padding: 2mm 0 2mm !important;
+        padding: 2mm 0 4mm !important;
         box-sizing: border-box !important;
         overflow: visible !important;
-        page-break-after: always !important;
-        break-after: page !important;
-      }
-
-      #print-area .ticket:last-child {
+        overflow-wrap: anywhere !important;
         page-break-after: auto !important;
         break-after: auto !important;
+        background: #fff !important;
+        color: #000 !important;
       }
 
       #print-area .ticket h1 { font-size: 21px !important; line-height: 1.05 !important; margin: 2px 0 !important; }
       #print-area .ticket h2 { font-size: 15px !important; line-height: 1.1 !important; margin: 2px 0 !important; }
       #print-area .ticket h3 { font-size: 11px !important; line-height: 1.1 !important; margin: 1px 0 !important; }
       #print-area .ticket p { font-size: 8px !important; line-height: 1.15 !important; margin: 1px 0 !important; }
-      #print-area .ticket table { width: 100% !important; max-width: 48mm !important; table-layout: fixed !important; border-collapse: collapse !important; }
+      #print-area .ticket table { width: 100% !important; max-width: 48mm !important; min-width: 0 !important; table-layout: fixed !important; border-collapse: collapse !important; }
       #print-area .ticket td, #print-area .ticket th { font-size: 8px !important; line-height: 1.15 !important; padding: 0.5px 0 !important; word-break: break-word !important; }
       #print-area .ticket img { max-width: 100% !important; }
+
+      /* Reforço: nenhum controle da interface deve entrar na impressão. */
+      button, input, select, textarea, nav, header, footer, .modal, [role="dialog"] {
+        visibility: hidden !important;
+      }
     }
   `;
   document.head.appendChild(style);
